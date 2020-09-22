@@ -66,9 +66,9 @@
 
   - name: Create /tmp/ifcfg-eth1.2002 and 2003 for RHEL7
     copy:
-      dest: "/tmp/ifcfg-eth2.{{ item.vlanid }}"
+      dest: "/tmp/ifcfg-eth1.{{ item.vlanid }}"
       content: |
-        DEVICE=eth2.{{ item.vlanid }}
+        DEVICE=eth1.{{ item.vlanid }}
         BOOTPROTO=static
         ONBOOT=yes
         IPADDR=192.168.{{ item.subnet }}.30

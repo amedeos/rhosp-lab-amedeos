@@ -1,0 +1,25 @@
+- name: Cleanup
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+  tasks:
+  - name: Remove ifcfg files
+    file:
+      path: "{{ item }}"
+      state: absent
+    with_items:
+      - /tmp/ifcfg-eth0
+      - /tmp/ifcfg-eth1
+      - /tmp/ifcfg-eth1.2002
+      - /tmp/ifcfg-eth1.2003
+
+  - name: Remove qcow2 files
+    file:
+      path: "{{ image_dir }}/{{ item }}"
+      state: absent
+    with_items:
+      - rhel7.qcow2
+      - rhel7-100G.qcow2
+      - rhel7-100G-no-eth0.qcow2
+      - rhel7-undercloud.qcow2
+      - "{{ image }}"
