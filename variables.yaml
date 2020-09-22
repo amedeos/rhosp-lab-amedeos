@@ -1,0 +1,103 @@
+bridge_n: bridge-br0
+libguestfs_path: /usr/share/guestfs/appliance/
+ssh_pub: /home/amedeo/.ssh/id_rsa.pub
+dns_ip: 172.20.0.10
+#lb_ip: 192.168.122.246
+undercloud_ip: 192.168.201.30
+domain: example.com
+undercloud_n: undercloud
+pre_provision: 0
+ssl: 0
+dcn: 0
+hci: 0
+iha: 0
+saf: 0
+bmaas: 0
+ovn: 0
+dvr: 0
+compose: 0
+ocp_osp: 0
+ffu: 0
+skip_deploy: 0
+undercloud_memory: 24576
+controller_memory: 16288
+compute_memory: 8144
+ceph_memory: 12288
+#lb_memory: 8192
+image_dir: /var/lib/libvirt/images
+image: rhel-guest-image-7.6-210.x86_64.qcow2
+image_location: http://192.168.1.70/images/rhel-guest-image-7.6-210.x86_64.qcow2
+ctrl_n: controller-1 controller-2 controller-3
+ctrl_n_list:
+  - controller-1
+  - controller-2
+  - controller-3
+num_compute: 2
+compute_n: compute-1 compute-2
+compute_n_list:
+  - compute-1
+  - compute-2
+num_ceph: 3
+ceph_n: ceph-1 ceph-2 ceph-3
+ceph_n_list:
+  - ceph-1
+  - ceph-2
+  - ceph-3
+all_n: "{{ ctrl_n }} {{ compute_n }} {{ ceph_n }}"
+all_n_external_ceph: "{{ ctrl_n }} {{ compute_n }}"
+provisioning_networks: provisioning
+osp_version: 13
+flavors: control compute ceph
+#username: rhn-support-sputhenp
+#ansible_python_interpreter: /usr/libexec/platform-python
+split_stack: 0
+cell_enabled: 0
+controller-1_ip: 192.168.201.31
+controller-2_ip: 192.168.201.32
+controller-3_ip: 192.168.201.33
+compute-1_ip: 192.168.201.41
+compute-2_ip: 172.168.201.42
+ceph-1_ip: 192.168.201.51
+ceph-2_ip: 192.168.201.52
+ceph-3_ip: 192.168.201.53
+hypervisor_networks:
+  - bridge
+  - bridge
+pre_provisioned_nodes:
+  - controller-1
+  - controller-2
+  - controller-3
+  - compute-1
+  - compute-2
+  - ceph-1
+  - ceph-2
+  - ceph-3
+supported_os:
+  - rhel7
+supported_osp_versions:
+  - 13
+  - 16
+ceph_external_nodes:
+  - ceph-1
+  - ceph-2
+  - ceph-3
+  - mon-1
+  - mon-2
+  - mon-3
+  - ceph-ansible
+pre_provisioned_nodes_with_ceph_external:
+  - controller-1
+  - controller-2
+  - controller-3
+  - compute-1
+  - compute-2
+  - ceph-1
+  - ceph-2
+  - ceph-3
+  - mon-1
+  - mon-2
+  - mon-3
+  - ceph-ansible
+ceph_external: 0
+stf: 0
+ssl_ansible: 0

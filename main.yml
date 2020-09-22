@@ -1,0 +1,2 @@
+#- import_playbook: prepare-kvm-hyperivsor.yaml
+- import_playbook: prepare-images.yaml

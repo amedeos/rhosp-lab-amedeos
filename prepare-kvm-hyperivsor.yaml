@@ -1,0 +1,53 @@
+- name:  Prepare KVM Hypervisor
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+  tasks:
+  #- name: Setting RP_Filter to 0 permanently.
+  #  copy:
+  #    dest: /etc/sysctl.d/98-rp-filter.conf
+  #    content: |
+  #      net.ipv4.conf.default.rp_filter = 0
+  #      net.ipv4.conf.all.rp_filter = 0
+
+  #- name: Getting rp_filter variables to set
+  #  shell: |
+  #    sysctl -A 2> /dev/null | grep "\.rp_filter"  | cut -d"=" -f1
+  #  register: sysctl_rp_filter
+
+  #- name: Setting Systcl rp_filter variables dynamically
+  #  sysctl:
+  #    name: "{{ item }}"
+  #    value: '0'
+  #    sysctl_set: yes
+  #    state: present
+  #  with_items:
+  #    - "{{ sysctl_rp_filter.stdout_lines }}"
+
+  - name: Creating additional IP for bridge_n
+    command: nmcli connection modify {{ bridge_n }} ipv4.addresses "192.168.201.10/24,192.168.201.11/24,192.168.201.12/24,192.168.201.13/24,192.168.201.14/24,192.168.201.15/24,192.168.201.16/24,192.168.201.17/24,192.168.201.18/24,192.168.201.19/24"
+
+  - name: Stop bridge_n
+    command: nmcli connection down {{ bridge_n }}
+
+  #- name: Wait some seconds
+  #  pause:
+  #    seconds: 10
+  #    prompt: "Wait 10 seconds..."
+
+  - name: Up bridge_n
+    command: nmcli connection up {{ bridge_n }}
+
+  - name: Restart Libvirtd Service
+    systemd:
+      state: restarted
+      name: libvirtd
+      enabled: yes
+
+  #- name: Setting host key checking flase for Ansible
+  #  lineinfile:
+  #    path: /etc/ansible/ansible.cfg
+  #    regexp: '^#host_key_checking'
+  #    insertafter: '^#host_key_checking'
+  #    line: host_key_checking = False
+
