@@ -1,2 +1,6 @@
 *.swp
 *.orig
+ansible-ssh
+*.tar.*
+# for now remove templates directory
+templates

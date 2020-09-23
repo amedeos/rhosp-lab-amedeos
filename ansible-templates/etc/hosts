@@ -1,0 +1,18 @@
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+
+#172.16.200.150         overcloud.{{ domain }}  overcloud
+{{ public_virtual_fixed_ips }}          overcloud.{{ domain }}  overcloud
+#172.16.0.150           overcloud.ctlplane.{{ domain }} overcloud.ctlplane
+{{ control_fixed_ips }}         overcloud.ctlplane.{{ domain }} overcloud.ctlplane
+#172.20.0.150           overcloud.internalapi.{{ domain }} overcloud.internalapi
+#172.18.0.150           overcloud.storage.{{ domain }} overcloud.storage
+#172.19.0.150           overcloud.storagemgmt.{{ domain }} overcloud.storagemgmt
+{{ controller_1_ip }}           controller-1.{{ domain }} controller-1
+{{ controller_2_ip }}           controller-2.{{ domain }} controller-2
+{{ controller_3_ip }}           controller-3.{{ domain }} controller-3
+{{ compute_1_ip }}              compute-1.{{ domain }} compute-1
+{{ compute_2_ip }}              compute-2.{{ domain }} compute-2
+{{ ceph_1_ip }}         ceph-1.{{ domain }} ceph-1
+{{ ceph_2_ip }}         ceph-2.{{ domain }} ceph-2
+{{ ceph_3_ip }}         ceph-3.{{ domain }} ceph-3

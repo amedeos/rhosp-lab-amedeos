@@ -1,0 +1,250 @@
+- name:  Build Undercloud VM/Node
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+  tasks:
+  - name: Copying Template Image to create undercloud. RHEL7
+    copy:
+      src: "{{ image_dir }}/rhel7-undercloud.qcow2"
+      dest: "{{ image_dir }}/undercloud.qcow2"
+    when:
+      - osp_version < 16
+        
+  - name: Copying Template Image to create undercloud. RHEL8
+    copy:
+      src: "{{ image_dir }}/rhel8-undercloud.qcow2"
+      dest: "{{ image_dir }}/undercloud.qcow2"
+    when:
+      - osp_version > 15
+
+  - name: Defining the undercloud vm
+    shell: |
+      virt-install --ram {{ undercloud_memory }} --vcpus {{ undercloud_cpu }} --os-variant rhel7 --disk path={{ image_dir }}/undercloud.qcow2,device=disk,bus=virtio,format=qcow2 --noautoconsole --vnc --network bridge:br0 --network bridge:br0 --name undercloud --cpu host-passthrough --dry-run --print-xml > /tmp/undercloud.xml
+      virsh define /tmp/undercloud.xml
+
+  - name: Starting undercloud vm
+    virt:
+      name: undercloud
+      state: running
+
+  - name: Delete templates.tar.bz2
+    file:
+      path: templates.tar.bz2
+      state: absent
+
+  - name: Create a bz2 archive of the templates
+    archive:
+      path:
+        - templates
+      dest: templates.tar.bz2
+      format: bz2
+
+  - name: Sleeping till ssh on undercloud vm is up
+    wait_for:
+      port: 22
+      host: "{{ undercloud_ip }}"
+      delay: 20
+      timeout: 300
+
+  - name: Remove temp directory for ssh key
+    file:
+      path: ansible-ssh
+      state: absent
+
+  - name: Create temp directory for ssh key
+    file:
+      path: ansible-ssh
+      state: directory
+      mode: '0700'
+
+  - name: Write ssh key
+    template:
+      dest: "ansible-ssh/id_rsa"
+      src: "{{ ssh_key }}"
+      mode: 0600
+
+  - name: Add newline at the end of ssh key
+    shell: |
+      echo  >> ansible-ssh/id_rsa
+
+  - name: Add undercloud group-host
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_private_key_file: ansible-ssh/id_rsa
+      ansible_ssh_user: root
+      groups:
+        - undercloud
+
+- name:  Prepare Undercloud Node
+  hosts: undercloud
+  vars_files:
+    - variables.yaml
+  tasks:
+  - name: Setting up hostname
+    hostname:
+      name: "undercloud.{{ domain }}"
+
+  - name: Update /etc/hosts file
+    template:
+      dest: /etc/hosts
+      src: ansible-templates/etc/hosts
+
+  - name: Set timezone to UTC
+    timezone:
+      name: UTC
+
+  - name: Registering Undercloud
+    redhat_subscription:
+      state: present
+      username: "{{ rh_subcription_user }}"
+      password: "{{ rh_subcription_password }}"
+      force_register: True
+    when:
+      - osp_version == 13
+
+  - name: Attach poolid
+    shell: |
+      subscription-manager attach --pool={{ rh_subcription_pool }}
+
+  - name: Set repository for the undercloud
+    shell: |
+      subscription-manager repos --disable='*' --enable=rhel-7-server-rpms --enable=rhel-7-server-extras-rpms --enable=rhel-7-server-rh-common-rpms --enable=rhel-7-server-satellite-tools-6.3-rpms --enable=rhel-ha-for-rhel-7-server-rpms --enable=rhel-7-server-openstack-13-rpms --enable=rhel-7-server-rhceph-3-tools-rpms 
+    when:
+      - osp_version == 13
+
+  - name: Clean yum cache
+    command: yum clean all
+    when:
+      - osp_version == 13
+
+  - name: Updating system to latest version. OSP-14 and Below. RHEL7
+    yum:
+      name: '*'
+      state: latest
+    when:
+      - osp_version < 15
+
+  - name: Updating system to latest version. OSP-15 and Above - RHEL8
+    dnf:
+      name: '*'
+      state: latest
+    when:
+      - osp_version > 14
+
+  - name: Install Basic Required Packages. OSP-14 and below - RHEL7
+    yum:
+      name:
+        - screen
+        - wget
+        - mlocate
+        - facter
+        - python-tripleoclient
+        - libvirt
+        - libguestfs-tools
+        - sshpass
+        - crudini
+        - ceph-ansible
+        - vim-enhanced
+        - tmux
+        - rhosp-director-images
+    when:
+      - osp_version < 15
+
+  - name: Install python-novajoin - Not applicable to OSP-10 and OSP-15 and Above - RHEL7
+    yum:
+      name:
+        - python-novajoin
+    when:
+      - osp_version != 10
+      - osp_version < 15
+  - name: Install Basic Required Packages. OSP-15 and above. RHEL8
+    dnf:
+      name:
+        - wget
+        - mlocate
+        - facter
+        - python3-tripleoclient
+        - libvirt
+        - libguestfs-tools
+        - sshpass
+        - crudini
+        - ceph-ansible
+        - vim-enhanced
+        - tmux
+        - rhosp-director-images
+        - python3-novajoin
+        - iptables
+        - python3-ipalib
+        - python3-ipaclient
+        - krb5-devel
+    when:
+      - osp_version > 14
+
+  - name: Copy Certificates to all overcloud nodes
+    copy:
+      src: templates/overcloud-cacert.pem
+      dest: /etc/pki/ca-trust/source/anchors/
+      owner: root
+      group: root
+
+  - name: Extract CA
+    command: update-ca-trust extract
+  - name: Create User Stack
+    user:
+      name: stack
+      password: "{{ secure_password }}"
+
+  - name: Assign sudo power to stack user
+    copy:
+      dest: /etc/sudoers.d/stack
+      content: |
+        stack ALL=(root) NOPASSWD:ALL
+
+  - name: Setting proper permission to /etc/sudoers.d/stack
+    file:
+      path: /etc/sudoers.d/stack
+      mode: '0440'
+
+  - name: Disable Libvirtd
+    systemd:
+      name: libvirtd
+      enabled: no
+
+  - name: Creates /home/stack/.ssh directory
+    file:
+      path: /home/stack/.ssh
+      owner: stack
+      group: stack
+      mode: 0700
+      state: directory
+
+  - name: Copy Root Authorized Keys to stack User
+    copy:
+      src: /root/.ssh/authorized_keys
+      dest: /home/stack/.ssh/authorized_keys
+      remote_src: yes
+
+  - name: Setting proper ownership to /home/stack/.ssh/authorized_keys
+    file:
+      path: /home/stack/.ssh/authorized_keys
+      owner: stack
+      group: stack
+
+  #- name: Setting Up Postrouting nat Rules using iptables
+  #  iptables:
+  #    table: nat
+  #    chain: POSTROUTING
+  #    out_interface: eth1
+  #    jump: MASQUERADE
+
+  - name: Copy All images to /home/stack
+    copy:
+      src: "{{ item }}"
+      dest: /home/stack/
+      owner: stack
+      group: stack
+    with_items:
+      #- /home/images/octavia-amphora-latest.qcow2
+      #- /home/images/fedora.qcow2
+      - templates.tar.bz2
+      #- osp-setup.sh

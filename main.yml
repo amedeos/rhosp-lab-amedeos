@@ -1,9 +1,13 @@
-- import_playbook: prepare-kvm-hyperivsor.yaml
-  tags:
-    - prepare-kvm
+#- import_playbook: prepare-kvm-hyperivsor.yaml
+#  tags:
+#    - prepare-kvm
 - import_playbook: prepare-images.yaml
   tags:
     - prepare-images
 - import_playbook: create-overcloud.yaml
   tags:
     - create-overcloud
+
+- import_playbook: prepare-undercloud.yaml
+  tags:
+    - prepare-undercloud
