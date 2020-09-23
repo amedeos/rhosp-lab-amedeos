@@ -1,0 +1,15 @@
+- name:  Build Overcloud Controllers
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+  tasks:
+  - name: Create 100GB Image for each controller
+    shell: |
+      qemu-img create -f qcow2 -o preallocation=metadata {{ image_dir }}/{{ item }}.qcow2 100G
+    with_items: "{{ ctrl_n_list }}"
+
+  - name: Defining the Overcloud controllers
+    shell: |
+      virt-install --ram {{ controller_memory }} --vcpus {{ controller_cpu }} --os-variant rhel7 --disk path={{ image_dir }}/{{ item }}.qcow2,device=disk,bus=virtio,format=qcow2 --noautoconsole --vnc --network bridge:br0 --network bridge:br0 --name {{ item }} --cpu host-passthrough --dry-run --print-xml > /tmp/{{ item }}.xml
+      virsh define /tmp/{{ item }}.xml
+    with_items: "{{ ctrl_n_list }}"

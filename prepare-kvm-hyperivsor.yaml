@@ -38,6 +38,17 @@
   - name: Up bridge_n
     command: nmcli connection up {{ bridge_n }}
 
+  - name: Set rp_filter to 0
+    sysctl:
+      name: "{{ item }}"
+      value: 0
+      sysctl_set: yes
+      sysctl_file: /etc/sysctl.d/50-kvm.conf
+    with_items:
+      - net.ipv4.conf.all.rp_filter
+      - net.ipv4.conf.br0.rp_filter
+      - net.ipv4.conf.default.rp_filter
+
   - name: Restart Libvirtd Service
     systemd:
       state: restarted

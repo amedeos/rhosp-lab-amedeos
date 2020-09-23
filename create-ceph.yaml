@@ -1,0 +1,22 @@
+- name:  Build Overcloud Ceph Nodes
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+  tasks:
+  - name: Create 100GB Image for each Ceph nodes
+    shell: |
+      qemu-img create -f qcow2 -o preallocation=metadata {{ image_dir }}/{{ item }}.qcow2 100G
+    with_items: "{{ ceph_n_list }}"
+
+  - name: Create 200 GB OSD and Journal disks and 100GB OS Disk
+    shell: |
+      qemu-img create -f qcow2 -o preallocation=metadata {{ image_dir }}/{{ item.0 }}-{{ item.1 }}.qcow2 200G
+    with_nested:
+      - "{{ ceph_n_list }}"
+      - ['osd-1', 'osd-2', 'journal']
+
+  - name: Defining the Overcloud Ceph nodes
+    shell: |
+      virt-install --ram {{ ceph_memory }} --vcpus {{ ceph_cpu }} --os-variant rhel7 --disk path={{ image_dir }}/{{ item }}.qcow2,device=disk,bus=virtio,format=qcow2 --disk path={{ image_dir }}/{{ item }}-osd-1.qcow2,device=disk,bus=virtio,format=qcow2 --disk path={{ image_dir }}/{{ item }}-osd-2.qcow2,device=disk,bus=virtio,format=qcow2 --disk path={{ image_dir }}/{{ item }}-journal.qcow2,device=disk,bus=virtio,format=qcow2 --noautoconsole --vnc --network bridge:br0 --network bridge:br0 --name {{ item }} --cpu host-passthrough --dry-run --print-xml > /tmp/{{ item }}.xml
+      virsh define /tmp/{{ item }}.xml
+    with_items: "{{ ceph_n_list }}"

@@ -26,7 +26,7 @@
 
   - name: Customizing the image to set root password, push ssh key and remove cloud-init
     shell: |
-      virt-customize -a {{ image_dir }}/{{ item }}-100G.qcow2 --root-password password:redhat --ssh-inject "root:file:{{ ssh_pub }}" --selinux-relabel --run-command 'yum remove cloud-init* -y'
+      virt-customize -a {{ image_dir }}/{{ item }}-100G.qcow2 --root-password password:"{{ secure_password }}" --ssh-inject "root:file:{{ ssh_pub }}" --selinux-relabel --run-command 'yum remove cloud-init* -y'
     environment:
       LIBGUESTFS_PATH: "{{ libguestfs_path }}"
     with_items: "{{ supported_os }}"
