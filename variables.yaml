@@ -21,22 +21,27 @@ ffu: 0
 skip_deploy: 0
 undercloud_memory: 24576
 controller_memory: 16288
+controller_cpu: 2
 compute_memory: 8144
+compute_cpu: 2
 ceph_memory: 12288
+ceph_cpu: 2
 #lb_memory: 8192
 image_dir: /var/lib/libvirt/images
-image: rhel-guest-image-7.6-210.x86_64.qcow2
-image_location: http://192.168.1.70/images/rhel-guest-image-7.6-210.x86_64.qcow2
-ctrl_n: controller-1 controller-2 controller-3
+image: rhel-guest-image-7.7-261.x86_64.qcow2
+image_location: http://192.168.1.70/images/rhel-guest-image-7.7-261.x86_64.qcow2
+#ctrl_n: controller-1 controller-2 controller-3
+ctrl_n: controller-1
 ctrl_n_list:
   - controller-1
-  - controller-2
-  - controller-3
-num_compute: 2
-compute_n: compute-1 compute-2
+  #- controller-2
+  #- controller-3
+num_compute: 1
+#compute_n: compute-1 compute-2
+compute_n: compute-1
 compute_n_list:
   - compute-1
-  - compute-2
+  #- compute-2
 num_ceph: 3
 ceph_n: ceph-1 ceph-2 ceph-3
 ceph_n_list:

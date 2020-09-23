@@ -3,6 +3,33 @@
   vars_files:
     - variables.yaml
   tasks:
+  - name: Delete Virtual BMC
+    shell: |
+      for I in {{ all_n }}; do
+         vbmc delete $I
+      done
+    ignore_errors: True
+
+  - name: Destroy virsh domain
+    virt:
+      name: "{{ item }}"
+      state: destroyed
+    with_items:
+      - "{{ ctrl_n_list }}"
+      - "{{ compute_n_list }}"
+      - "{{ ceph_n_list }}"
+    ignore_errors: True
+
+  - name: Undefine virsh domain
+    virt:
+      name: "{{ item }}"
+      command: undefine
+    with_items:
+      - "{{ ctrl_n_list }}"
+      - "{{ compute_n_list }}"
+      - "{{ ceph_n_list }}"
+    ignore_errors: True
+
   - name: Remove ifcfg files
     file:
       path: "{{ item }}"
@@ -23,3 +50,22 @@
       - rhel7-100G-no-eth0.qcow2
       - rhel7-undercloud.qcow2
       - "{{ image }}"
+      - "{{ ctrl_n_list }}"
+
+  - name: Remove instance qcow2 files
+    file:
+      path: "{{ image_dir }}/{{ item }}.qcow2"
+      state: absent
+    with_items:
+      - "{{ ctrl_n_list }}"
+      - "{{ compute_n_list }}"
+      - "{{ ceph_n_list }}"
+
+  - name: Remove ceph qcow2 files
+    file:
+      path: "{{ image_dir }}/{{ item.0 }}-{{ item.1 }}.qcow2"
+      state: absent
+    with_nested:
+      - "{{ ceph_n_list }}"
+      - ['osd-1', 'osd-2', 'journal']
+
