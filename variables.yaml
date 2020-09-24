@@ -33,7 +33,18 @@ rh_subcription_pool: !vault |
           3536333232376530633563653663313733323534343738363538
 dns_ip: 172.20.0.10
 #lb_ip: 192.168.122.246
-undercloud_ip: 192.168.201.30
+undercloud_ip: 192.168.122.30
+undercloud_ip_prv: 192.168.201.30
+undercloud_netmask: 24
+undercloud_local_interface: eth1
+undercloud_public_vip: 192.168.201.100
+undercloud_admin_vip: 192.168.201.101
+undercloud_dhcp_start: 192.168.201.102
+undercloud_dhcp_end: 192.168.201.130
+undercloud_network_cidr: 192.168.201.0
+undercloud_network_gateway: 192.168.201.1
+undercloud_discovery_iprange: 192.168.201.131,192.168.201.160
+undercloud_inspection_iprange: 192.168.201.131,192.168.201.160
 domain: example.com
 undercloud_n: undercloud
 pre_provision: 0
@@ -59,8 +70,8 @@ ceph_memory: 12288
 ceph_cpu: 2
 #lb_memory: 8192
 image_dir: /var/lib/libvirt/images
-image: rhel-guest-image-7.7-261.x86_64.qcow2
-image_location: http://192.168.1.70/images/rhel-guest-image-7.7-261.x86_64.qcow2
+image: rhel-server-7.8-update-3-x86_64-kvm.qcow2
+image_location: http://192.168.1.70/images/rhel-server-7.8-update-3-x86_64-kvm.qcow2
 #ctrl_n: controller-1 controller-2 controller-3
 ctrl_n: controller-1
 ctrl_n_list:

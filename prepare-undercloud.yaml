@@ -19,7 +19,7 @@
 
   - name: Defining the undercloud vm
     shell: |
-      virt-install --ram {{ undercloud_memory }} --vcpus {{ undercloud_cpu }} --os-variant rhel7 --disk path={{ image_dir }}/undercloud.qcow2,device=disk,bus=virtio,format=qcow2 --noautoconsole --vnc --network bridge:br0 --network bridge:br0 --name undercloud --cpu host-passthrough --dry-run --print-xml > /tmp/undercloud.xml
+      virt-install --ram {{ undercloud_memory }} --vcpus {{ undercloud_cpu }} --os-variant rhel7 --disk path={{ image_dir }}/undercloud.qcow2,device=disk,bus=virtio,format=qcow2 --noautoconsole --vnc --network network:default --network bridge:br0 --name undercloud --cpu host-passthrough --dry-run --print-xml > /tmp/undercloud.xml
       virsh define /tmp/undercloud.xml
 
   - name: Starting undercloud vm
@@ -131,10 +131,14 @@
     when:
       - osp_version > 14
 
+  - name: Reboot undercloud
+    reboot:
+
   - name: Install Basic Required Packages. OSP-14 and below - RHEL7
     yum:
       name:
         - screen
+        - bash-completion
         - wget
         - mlocate
         - facter
@@ -230,12 +234,12 @@
       owner: stack
       group: stack
 
-  #- name: Setting Up Postrouting nat Rules using iptables
-  #  iptables:
-  #    table: nat
-  #    chain: POSTROUTING
-  #    out_interface: eth1
-  #    jump: MASQUERADE
+  - name: Setting Up Postrouting nat Rules using iptables
+    iptables:
+      table: nat
+      chain: POSTROUTING
+      out_interface: "{{ undercloud_local_interface }}"
+      jump: MASQUERADE
 
   - name: Copy All images to /home/stack
     copy:

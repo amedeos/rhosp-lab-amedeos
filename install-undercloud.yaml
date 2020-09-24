@@ -1,0 +1,46 @@
+- name:  Add Undercloud VM/Node
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+  tasks:
+  - name: Add undercloud group-host
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_private_key_file: ansible-ssh/id_rsa
+      ansible_ssh_user: stack
+      groups:
+        - undercloud
+
+- name:  Install Undercloud
+  hosts: undercloud
+  vars_files:
+    - variables.yaml
+  tasks:
+  - name: Copy undercloud.conf
+    copy:
+      src: /usr/share/instack-undercloud/undercloud.conf.sample
+      dest: /home/stack/undercloud.conf
+      remote_src: True
+      owner: stack
+      group: stack
+      mode: '0644'
+
+  - name: Run crudini on undercloud.conf
+    shell: |
+      crudini --set /home/stack/undercloud.conf DEFAULT local_ip {{ undercloud_ip_prv }}/{{ undercloud_netmask }}
+      crudini --set /home/stack/undercloud.conf DEFAULT undercloud_public_vip {{ undercloud_public_vip }}
+      crudini --set /home/stack/undercloud.conf DEFAULT undercloud_admin_vip {{ undercloud_admin_vip }}
+      crudini --set /home/stack/undercloud.conf DEFAULT local_interface {{ undercloud_local_interface }}
+      crudini --set /home/stack/undercloud.conf DEFAULT generate_service_certificate false
+      crudini --set /home/stack/undercloud.conf DEFAULT dhcp_start {{ undercloud_dhcp_start }}
+      crudini --set /home/stack/undercloud.conf DEFAULT dhcp_end {{ undercloud_dhcp_end }}
+      crudini --set /home/stack/undercloud.conf DEFAULT network_cidr {{ undercloud_network_cidr }}/{{ undercloud_netmask }}
+      crudini --set /home/stack/undercloud.conf DEFAULT network_gateway {{ undercloud_network_gateway }}
+      crudini --set /home/stack/undercloud.conf DEFAULT discovery_iprange {{ undercloud_discovery_iprange }}
+      crudini --set /home/stack/undercloud.conf DEFAULT inspection_iprange {{ undercloud_inspection_iprange }}
+
+  - name: Run openstack undercloud install
+    shell: |
+      openstack undercloud install
+    async: 7200
+    poll: 10

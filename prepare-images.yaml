@@ -45,34 +45,40 @@
   - name: Create /tmp/ifcfg-eth0 for RHEL7
     copy:
       dest: /tmp/ifcfg-eth0
+      mode: '0644'
       content: |
         DEVICE=eth0
         ONBOOT=yes
         IPADDR={{ undercloud_ip }}
         NETMASK=255.255.255.0
-        GATEWAY=192.168.201.1
+        GATEWAY=192.168.122.1
         NM_CONTROLLED=no
         DNS1={{ dns_ip }}
 
   - name: Create /tmp/ifcfg-eth1 for RHEL7
     copy:
       dest: /tmp/ifcfg-eth1
+      mode: '0644'
       content: |
         DEVICE=eth1
         TYPE=Ethernet
-        BOOTPROTO=none
+        IPADDR={{ undercloud_ip_prv }}
+        DEFROUTE=no
+        NETMASK=255.255.255.0
         ONBOOT=yes
         NM_CONTROLLED=no
 
   - name: Create /tmp/ifcfg-eth1.2002 and 2003 for RHEL7
     copy:
       dest: "/tmp/ifcfg-eth1.{{ item.vlanid }}"
+      mode: '0644'
       content: |
         DEVICE=eth1.{{ item.vlanid }}
         BOOTPROTO=static
         ONBOOT=yes
         IPADDR=192.168.{{ item.subnet }}.30
         NETMASK=255.255.255.0
+        DEFROUTE=no
         NM_CONTROLLED=no
         VLAN=yes
     with_items:

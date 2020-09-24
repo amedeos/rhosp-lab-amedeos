@@ -1,3 +1,26 @@
+- name: Clean updercloud
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+  tasks:
+  - name: Add undercloud group-host for cleanup
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_private_key_file: ansible-ssh/id_rsa
+      ansible_ssh_user: root
+      groups:
+        - undercloud
+- name: Clean undercloud
+  hosts: undercloud
+  vars_files:
+    - variables.yaml
+  ignore_errors: True
+  tasks:
+  - name: Unregister undercloud host
+    redhat_subscription:
+      state: absent
+    ignore_errors: True
+
 - name: Cleanup
   hosts: localhost
   vars_files:
@@ -74,3 +97,11 @@
       - "{{ ceph_n_list }}"
       - ['osd-1', 'osd-2', 'journal']
 
+  - name: Remove ssh known hosts
+    known_hosts:
+      name: "{{ item.1 }}"
+      path: "{{ item.0 }}"
+      state: absent
+    with_nested:
+      - [ '/root/.ssh/known_hosts', '/home/amedeo/.ssh/known_hosts' ]
+      - [ '{{ undercloud_n }}', '{{ undercloud_n }}.{{ domain }}' ]
