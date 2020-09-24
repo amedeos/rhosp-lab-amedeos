@@ -11,6 +11,50 @@
       groups:
         - undercloud
 
+  - name: Generating instackenv.json - Step 1
+    shell:
+      cmd: |
+        cat >> /tmp/instackenv.tmp << EOF
+        {
+          "nodes": [
+        EOF
+        for I in {{ all_n }}; do
+          MAC=$(virsh domiflist $I | grep bridge | head -1 | awk {'print $5'})
+          IPBMC=$(vbmc list | grep $I | awk '{print $6}')
+        cat << EOF >> /tmp/instackenv.tmp
+        {
+          "name": "$I",
+          "pm_addr": "$IPBMC",
+          "pm_password": "{{ secure_password }}",
+          "pm_type": "ipmi",
+          "mac": [
+            "${MAC}"
+          ],
+          "pm_user": "admin"
+        },
+        EOF
+        done
+
+  - name: Generating instackenv.json - Step 2 Remove last line
+    lineinfile:
+      dest: /tmp/instackenv.tmp
+      regexp: ''
+      insertafter: EOF
+      line: ''
+
+  - name: Generating instackenv.json - Step 3
+    shell:
+      cmd: |
+        cat >> /tmp/instackenv.tmp << EOF
+            }
+          ]
+        }
+        EOF
+
+  - name: Generating instackenv.json - Step 4
+    shell: |
+      jq . /tmp/instackenv.tmp > /tmp/instackenv.json
+
 - name:  Install Undercloud
   hosts: undercloud
   vars_files:
@@ -24,6 +68,14 @@
       owner: stack
       group: stack
       mode: '0644'
+
+  - name: Copy instackenv.json
+    copy:
+      src: /tmp/instackenv.json
+      dest: /home/stack/instackenv.json
+      owner: stack
+      group: stack
+      mode: '0600'
 
   - name: Run crudini on undercloud.conf
     shell: |
@@ -39,8 +91,52 @@
       crudini --set /home/stack/undercloud.conf DEFAULT discovery_iprange {{ undercloud_discovery_iprange }}
       crudini --set /home/stack/undercloud.conf DEFAULT inspection_iprange {{ undercloud_inspection_iprange }}
 
-  - name: Run openstack undercloud install
+  - name: messages for debug
+    debug:
+      msg:
+        - "################# RUN TMUX ##################"
+        - "# tmux"
+        - "# su - stack"
+        - "$ cd /home/stack"
+        - "$ openstack undercloud install"
+
+  - name: Pause to run playbook
+    pause: prompt='Did you run the openstack undercloud install??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  #- name: Run openstack undercloud install
+  #  shell: |
+  #    openstack undercloud install
+  #  async: 7200
+  #  poll: 10
+
+  - name: Install rhosp images
+    yum:
+      name: "{{ item }}"
+      state: present
+    become: True
+    with_items:
+      - rhosp-director-images
+      - rhosp-director-images-ipa
+
+  - name: Create images directory
+    file:
+      path: /home/stack/images
+      state: directory
+
+  - name: Unarchive images
+    unarchive:
+      src: "{{ item }}"
+      dest: /home/stack/images
+      remote_src: True
+    with_items:
+      - /usr/share/rhosp-director-images/overcloud-full-latest-13.0.tar
+      - /usr/share/rhosp-director-images/ironic-python-agent-latest-13.0.tar
+
+  - name: Set root password on the image
     shell: |
-      openstack undercloud install
-    async: 7200
-    poll: 10
+      virt-customize -a /home/stack/images/overcloud-full.qcow2 --root-password password:{{ secure_password }}
+
+  - name: Upload Overcloud Images to Undercloud Glance.
+    shell: |
+      source /home/stack/stackrc
+      openstack overcloud image upload --image-path /home/stack/images/
