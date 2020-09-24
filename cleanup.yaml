@@ -103,5 +103,5 @@
       path: "{{ item.0 }}"
       state: absent
     with_nested:
-      - [ '/root/.ssh/known_hosts', '/home/amedeo/.ssh/known_hosts' ]
+      - [ '/root/.ssh/known_hosts']
       - [ '{{ undercloud_n }}', '{{ undercloud_n }}.{{ domain }}' ]

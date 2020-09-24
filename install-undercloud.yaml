@@ -14,6 +14,7 @@
   - name: Generating instackenv.json - Step 1
     shell:
       cmd: |
+        rm -f /tmp/instackenv.tmp
         cat >> /tmp/instackenv.tmp << EOF
         {
           "nodes": [
@@ -140,3 +141,26 @@
     shell: |
       source /home/stack/stackrc
       openstack overcloud image upload --image-path /home/stack/images/
+
+  - name: Updating DNS Server of ctlplane-subnet
+    shell: |
+      source /home/stack/stackrc
+      openstack subnet set ctlplane-subnet --dns-nameserver {{ dns_ip }}
+    when:
+      - osp_version < 16
+
+  - name: Validate instackenv.json
+    shell: |
+      source /home/stack/stackrc
+      openstack overcloud node import --validate-only /home/stack/instackenv.json
+
+  - name: Import instackenv.json
+    shell: |
+      source /home/stack/stackrc
+      openstack overcloud node import /home/stack/instackenv.json
+
+  - name: Run the introspection
+    shell: |
+      source /home/stack/stackrc
+      openstack overcloud node introspect --all-manageable --provide
+

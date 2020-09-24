@@ -1,0 +1,104 @@
+- name:  Add Undercloud VM/Node
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+  tasks:
+  - name: Add undercloud group-host
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_private_key_file: ansible-ssh/id_rsa
+      ansible_ssh_user: stack
+      groups:
+        - undercloud
+
+- name:  Install Overcloud
+  hosts: undercloud
+  vars_files:
+    - variables.yaml
+  tasks:
+  - name: Unarchive templates.tar.bz2
+    unarchive:
+      src: /home/stack/templates.tar.bz2
+      dest: /home/stack
+      remote_src: True
+
+  - name: Generating Fencing Configuration from isntackenv.json
+    shell: |
+      source /home/stack/stackrc
+      openstack overcloud generate fencing --ipmi-lanplus --ipmi-level administrator --output /home/stack/templates/fencing.yaml /home/stack/instackenv.json
+
+  - name: Configure local container registry
+    shell: |
+      source /home/stack/stackrc
+      openstack overcloud container image prepare \
+        --output-images-file /home/stack/templates/container-images.yaml \
+        --namespace=registry.access.redhat.com/rhosp{{ osp_version }} \
+        --set ceph_namespace=registry.access.redhat.com/rhceph \
+        --push-destination {{ undercloud_ip_prv }}:8787 \
+        --set ceph_image=rhceph-3-rhel7 \
+        --tag-from-label {version}-{release} \
+        --output-env-file /home/stack/templates/docker-registry.yaml \
+        -r /home/stack/templates/osp-13/roles_data.yaml \
+        -e /usr/share/openstack-tripleo-heat-templates/environments/ceph-ansible/ceph-ansible.yaml \
+        -e /usr/share/openstack-tripleo-heat-templates/environments/network-isolation.yaml \
+        -e /usr/share/openstack-tripleo-heat-templates/environments/tls-endpoints-public-ip.yaml \
+        -e /usr/share/openstack-tripleo-heat-templates/environments/services-docker/octavia.yaml \
+        -e /usr/share/openstack-tripleo-heat-templates/environments/services/barbican.yaml \
+        -e /usr/share/openstack-tripleo-heat-templates/environments/barbican-backend-simple-crypto.yaml \
+        -e  /usr/share/openstack-tripleo-heat-templates/environments/services-docker/manila.yaml \
+        -e /usr/share/openstack-tripleo-heat-templates/environments/services/ironic.yaml \
+        -e /usr/share/openstack-tripleo-heat-templates/environments/metrics-collectd-qdr.yaml \
+        -e /home/stack/templates/environments/25-hostname-map.yaml \
+        -e /home/stack/templates/environments/30-fixed-ip-vips.yaml \
+        -e /home/stack/templates/environments/40-enable-tls.yaml \
+        -e /home/stack/templates/environments/45-inject-trust-anchor.yaml \
+        -e /home/stack/templates/environments/35-ceph-config.yaml \
+        -e /home/stack/templates/environments/55-rsvd_host_memory.yaml \
+        -e /home/stack/templates/environments/configure-barbican.yaml \
+        -e /home/stack/templates/environments/global-config.yaml
+    async: 7200
+    poll: 10
+
+  - name: Create auth file for registry.access.redhat.com
+    shell: |
+      sudo docker login --username={{ rh_subcription_user }} --password={{ rh_subcription_password }} registry.access.redhat.com
+
+  - name: Download container images
+    shell: |
+      sudo openstack overcloud container image upload \
+        --verbose --config-file /home/stack/templates/container-images.yaml
+
+  - name: Generating Flavors and Binding it to Profile
+    shell: |
+      source /home/stack/stackrc
+      for I in {{ flavors }}; do
+        openstack flavor create --id auto --ram 1024 --disk 40 --vcpus 1 $I
+        openstack flavor set  --property "capabilities:boot_option"="local" --property "capabilities:profile"=$I --property resources:CUSTOM_BAREMETAL='1' --property resources:DISK_GB='0' --property resources:MEMORY_MB='0' --property resources:VCPU='0' $I
+      done
+
+  - name: Tagging controllers
+    shell: |
+      source /home/stack/stackrc
+      X=0
+      for I in {{ ctrl_n }}; do
+        openstack baremetal node set ${I} --property capabilities=profile:control,node:overcloud-controller-${X},boot_option:local
+        X=$((X + 1))
+      done
+
+  - name: Tagging computes
+    shell: |
+      source /home/stack/stackrc
+      X=0
+      for I in {{ compute_n }}; do
+        openstack baremetal node set ${I} --property capabilities=profile:compute,node:overcloud-compute-${X},boot_option:local
+        X=$((X + 1))
+      done
+
+  - name: Tagging cephs
+    shell: |
+      source /home/stack/stackrc
+      X=0
+      for I in {{ ceph_n }}; do
+        openstack baremetal node set ${I} --property capabilities=profile:ceph,node:overcloud-ceph-${X},boot_option:local
+        X=$((X + 1))
+      done
