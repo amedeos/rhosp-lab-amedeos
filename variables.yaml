@@ -92,10 +92,9 @@ ceph_n_list:
   - ceph-3
 all_n: "{{ ctrl_n }} {{ compute_n }} {{ ceph_n }}"
 all_n_external_ceph: "{{ ctrl_n }} {{ compute_n }}"
-provisioning_networks: provisioning
+#provisioning_networks: provisioning
 osp_version: 13
 flavors: control compute ceph
-#username: rhn-support-sputhenp
 #ansible_python_interpreter: /usr/libexec/platform-python
 split_stack: 0
 cell_enabled: 0

@@ -27,6 +27,14 @@
       source /home/stack/stackrc
       openstack overcloud generate fencing --ipmi-lanplus --ipmi-level administrator --output /home/stack/templates/fencing.yaml /home/stack/instackenv.json
 
+  - name: Configure network_data.yaml
+    template:
+      src: ansible-templates/home/stack/templates/environments/network_data.yaml
+      dest: /home/stack/templates/environments/network_data.yaml
+      owner: stack
+      group: stack
+      mode: '0644'
+
   - name: Configure local container registry
     shell: |
       source /home/stack/stackrc
@@ -63,10 +71,10 @@
     shell: |
       sudo docker login --username={{ rh_subcription_user }} --password={{ rh_subcription_password }} registry.access.redhat.com
 
-  - name: Download container images
-    shell: |
-      sudo openstack overcloud container image upload \
-        --verbose --config-file /home/stack/templates/container-images.yaml
+  #- name: Download container images
+  #  shell: |
+  #    sudo openstack overcloud container image upload \
+  #      --verbose --config-file /home/stack/templates/container-images.yaml
 
   - name: Generating Flavors and Binding it to Profile
     shell: |
@@ -102,3 +110,11 @@
         openstack baremetal node set ${I} --property capabilities=profile:ceph,node:overcloud-ceph-${X},boot_option:local
         X=$((X + 1))
       done
+
+  - name: Copy overcloud-deploy.sh
+    template:
+      src: ansible-templates/home/stack/overcloud-deploy.sh
+      dest: /home/stack/overcloud-deploy.sh
+      owner: stack
+      group: stack
+      mode: '0755'
