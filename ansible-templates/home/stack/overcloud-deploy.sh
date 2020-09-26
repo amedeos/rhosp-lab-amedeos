@@ -1,6 +1,9 @@
 source /home/stack/stackrc
 #!/bin/bash
 OSP_VERS={{ osp_version }}
+LOG_DATE=$(date +%Y%m%d-%H%M)
+LOG_DIR=/home/stack/log-deploy
+mkdir -p ${LOG_DIR}
 if [ "${OSP_VERS}" -gt 13 ]; then
 	OCTAVIA_FILE="/usr/share/openstack-tripleo-heat-templates/environments/services/octavia.yaml"
 else
@@ -37,4 +40,4 @@ exec openstack overcloud deploy \
         -e /home/stack/templates/environments/35-ceph-config.yaml \
         -e /home/stack/templates/environments/55-rsvd_host_memory.yaml \
 	-e /home/stack/templates/fencing.yaml \
-        --log-file /home/stack/overcloud-deploy.log
+        --log-file ${LOG_DIR}/overcloud-deploy-${LOG_DATE}.log

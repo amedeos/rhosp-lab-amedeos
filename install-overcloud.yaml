@@ -37,7 +37,7 @@
     with_items:
       - { src: ansible-templates/home/stack/templates/environments/network_data.yaml, dest: /home/stack/templates/environments/network_data.yaml }
       - { src: ansible-templates/home/stack/templates/osp-13/roles_data.yaml, dest: /home/stack/templates/osp-13/roles_data.yaml }
-      - { src: ansible-templates/home/stack/templates/environments/node-count.yaml, dest: /home/stack/templates/environments/note-count.yaml }
+      - { src: ansible-templates/home/stack/templates/environments/node-count.yaml, dest: /home/stack/templates/environments/node-count.yaml }
       - { src: ansible-templates/home/stack/templates/environments/global-config.yaml, dest: /home/stack/templates/environments/global-config.yaml }
       - { src: ansible-templates/home/stack/templates/osp-13/network-environment.yaml, dest: /home/stack/templates/osp-13/network-environment.yaml }
       - { src: ansible-templates/home/stack/templates/environments/25-hostname-map.yaml, dest: /home/stack/templates/environments/25-hostname-map.yaml }
