@@ -1,13 +1,13 @@
 source /home/stack/stackrc
 #!/bin/bash
 OSP_VERS={{ osp_version }}
-if [ "${OSP_VERS}" > 13 ]; then
+if [ "${OSP_VERS}" -gt 13 ]; then
 	OCTAVIA_FILE="/usr/share/openstack-tripleo-heat-templates/environments/services/octavia.yaml"
 else
 	OCTAVIA_FILE="/usr/share/openstack-tripleo-heat-templates/environments/services-docker/octavia.yaml"
 fi
 
-if [ "${OSP_VERS}" > 14 ]; then
+if [ "${OSP_VERS}" -gt 14 ]; then
 	TLS_FILE="/home/stack/templates/environments/40-enable-tls-15.yaml"
 else
 	TLS_FILE="/home/stack/templates/environments/40-enable-tls.yaml"
