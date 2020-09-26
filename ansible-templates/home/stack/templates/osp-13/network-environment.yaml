@@ -10,7 +10,7 @@ parameter_defaults:
   NeutronNetworkType: 'vxlan,vlan'
   NeutronTunnelTypes: 'vxlan'
   NeutronBridgeMappings: provider:br-ex
-  NeutronNetworkVLANRanges: provider:1-4000
+  NeutronNetworkVLANRanges: provider:1:4000
   # Bonding options (only active/backup works in a virtual environment)
   BondInterfaceOvsOptions: 'mode=1 miimon=150'
   ControllerExtraConfig:
