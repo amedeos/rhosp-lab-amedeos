@@ -72,6 +72,7 @@ ceph_cpu: 2
 image_dir: /var/lib/libvirt/images
 image: rhel-server-7.8-update-3-x86_64-kvm.qcow2
 image_location: http://192.168.1.70/images/rhel-server-7.8-update-3-x86_64-kvm.qcow2
+num_controller: 1
 #ctrl_n: controller-1 controller-2 controller-3
 ctrl_n: controller-1
 ctrl_n_list:
@@ -107,7 +108,7 @@ ceph_1_ip: 192.168.201.51
 ceph_2_ip: 192.168.201.52
 ceph_3_ip: 192.168.201.53
 #PublicVirtualFixedIPs
-public_virtual_fixed_ips: 192.168.202.150
+public_virtual_fixed_ips: 192.168.203.150
 #ControlFixedIPs
 control_fixed_ips: 192.168.201.150
 hypervisor_networks:

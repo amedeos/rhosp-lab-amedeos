@@ -55,7 +55,7 @@
       - "{{ undercloud_n }}"
     ignore_errors: True
 
-  - name: Remove ifcfg files
+  - name: Remove files
     file:
       path: "{{ item }}"
       state: absent
@@ -66,6 +66,8 @@
       - /tmp/ifcfg-eth1.2003
       - ansible-ssh
       - templates.tar.bz2
+      - /tmp/instackenv.tmp
+      - /tmp/instackenv.json
 
   - name: Remove qcow2 files
     file:

@@ -1,0 +1,16 @@
+resource_registry:
+  OS::TripleO::Network::Ports::ExternalVipPort: /usr/share/openstack-tripleo-heat-templates/network/ports/external.yaml
+  OS::TripleO::Network::Ports::InternalApiVipPort: /usr/share/openstack-tripleo-heat-templates/network/ports/internal_api.yaml
+  OS::TripleO::Network::Ports::StorageVipPort: /usr/share/openstack-tripleo-heat-templates/network/ports/storage.yaml
+  OS::TripleO::Network::Ports::StorageMgmtVipPort: /usr/share/openstack-tripleo-heat-templates/network/ports/storage_mgmt.yaml
+
+parameter_defaults:
+  # Set the IP addresses of the VIPs here.
+  # NOTE: we will eventually move to one VIP per service
+  #
+  ControlFixedIPs: [{'ip_address':'{{ control_fixed_ips }}'}]
+  PublicVirtualFixedIPs: [{'ip_address':'{{ public_virtual_fixed_ips }}'}]
+  InternalApiVirtualFixedIPs: [{'ip_address':'192.168.200.150'}]
+  StorageVirtualFixedIPs: [{'ip_address':'192.168.204.150'}]
+  StorageMgmtVirtualFixedIPs: [{'ip_address':'192.168.205.150'}]
+  RedisVirtualFixedIPs: [{'ip_address':'192.168.200.151'}]

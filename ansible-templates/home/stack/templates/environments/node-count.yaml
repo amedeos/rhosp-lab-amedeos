@@ -1,0 +1,4 @@
+parameter_defaults:
+  ControllerCount: {{ num_controller }}
+  ComputeCount: {{ num_compute }}
+  CephCount: {{ num_ceph }}

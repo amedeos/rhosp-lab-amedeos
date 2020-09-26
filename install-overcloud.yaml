@@ -27,13 +27,30 @@
       source /home/stack/stackrc
       openstack overcloud generate fencing --ipmi-lanplus --ipmi-level administrator --output /home/stack/templates/fencing.yaml /home/stack/instackenv.json
 
-  - name: Configure network_data.yaml
+  - name: Configure environments files
     template:
-      src: ansible-templates/home/stack/templates/environments/network_data.yaml
-      dest: /home/stack/templates/environments/network_data.yaml
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
       owner: stack
       group: stack
       mode: '0644'
+    with_items:
+      - { src: ansible-templates/home/stack/templates/environments/network_data.yaml, dest: /home/stack/templates/environments/network_data.yaml }
+      - { src: ansible-templates/home/stack/templates/osp-13/roles_data.yaml, dest: /home/stack/templates/osp-13/roles_data.yaml }
+      - { src: ansible-templates/home/stack/templates/environments/node-count.yaml, dest: /home/stack/templates/environments/note-count.yaml }
+      - { src: ansible-templates/home/stack/templates/environments/global-config.yaml, dest: /home/stack/templates/environments/global-config.yaml }
+      - { src: ansible-templates/home/stack/templates/osp-13/network-environment.yaml, dest: /home/stack/templates/osp-13/network-environment.yaml }
+      - { src: ansible-templates/home/stack/templates/environments/25-hostname-map.yaml, dest: /home/stack/templates/environments/25-hostname-map.yaml }
+      - { src: ansible-templates/home/stack/templates/environments/30-fixed-ip-vips.yaml, dest: /home/stack/templates/environments/30-fixed-ip-vips.yaml }
+      - { src: ansible-templates/home/stack/templates/environments/30-ips-from-pool-all.yaml, dest: /home/stack/templates/environments/30-ips-from-pool-all.yaml }
+      - { src: ansible-templates/home/stack/templates/environments/40-enable-tls.yaml, dest: /home/stack/templates/environments/40-enable-tls.yaml }
+      - { src: ansible-templates/home/stack/templates/environments/45-inject-trust-anchor.yaml, dest: /home/stack/templates/environments/45-inject-trust-anchor.yaml }
+      - { src: ansible-templates/home/stack/templates/environments/35-ceph-config.yaml, dest: /home/stack/templates/environments/35-ceph-config.yaml }
+      - { src: ansible-templates/home/stack/templates/wipe-disks.yaml, dest: /home/stack/templates/wipe-disks.yaml }
+      - { src: ansible-templates/home/stack/templates/wipe-disk.sh, dest: /home/stack/templates/wipe-disk.sh }
+      - { src: ansible-templates/home/stack/templates/environments/55-rsvd_host_memory.yaml, dest: /home/stack/templates/environments/55-rsvd_host_memory.yaml }
+    when:
+      - osp_version == 13
 
   - name: Configure local container registry
     shell: |

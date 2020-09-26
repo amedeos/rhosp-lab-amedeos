@@ -1,0 +1,18 @@
+resource_registry:
+  OS::TripleO::Controller::Net::SoftwareConfig: /home/stack/templates/osp-13/nic-configs/controller.yaml
+  OS::TripleO::Compute::Net::SoftwareConfig: /home/stack/templates/osp-13/nic-configs/compute.yaml
+  OS::TripleO::Ceph::Net::SoftwareConfig: /home/stack/templates/osp-13/nic-configs/ceph.yaml
+parameter_defaults:
+  ControlPlaneDefaultRoute: {{ undercloud_network_gateway }}
+  ControlPlaneSubnetCidr: '{{ undercloud_netmask }}'
+  EC2MetadataIp: {{ undercloud_ip_prv }}
+  DnsServers: ['{{ dns_ip }}']
+  NeutronNetworkType: 'vxlan,vlan'
+  NeutronTunnelTypes: 'vxlan'
+  NeutronBridgeMappings: provider:br-ex
+  NeutronNetworkVLANRanges: provider:1-4000
+  # Bonding options (only active/backup works in a virtual environment)
+  BondInterfaceOvsOptions: 'mode=1 miimon=150'
+  ControllerExtraConfig:
+    keystone::token_expiration: 28800
+  CloudDomain: {{ domain }}

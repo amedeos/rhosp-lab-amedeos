@@ -1,0 +1,14 @@
+parameter_defaults:
+  HostnameMap:
+    overcloud-controller-0: controller-1
+    overcloud-controller-1: controller-2
+    overcloud-controller-2: controller-3
+    overcloud-compute-0: compute-1
+    overcloud-compute-1: compute-2
+    overcloud-compute-2: compute-3
+    overcloud-ceph-0: ceph-1
+    overcloud-ceph-1: ceph-2
+    overcloud-ceph-2: ceph-3
+    overcloud-ceph-3: ceph-4
+    overcloud-ceph-4: ceph-5
+    overcloud-ceph-5: ceph-6

@@ -1,0 +1,13 @@
+parameter_defaults:
+  OvercloudControllerFlavor: control
+  ControllerSchedulerHints:
+    'capabilities:node': 'overcloud-controller-%index%'
+
+  OvercloudComputeFlavor: compute
+  ComputeSchedulerHints:
+    'capabilities:node': 'overcloud-compute-%index%'
+
+  OvercloudCephFlavor: ceph
+  CephSchedulerHints:
+    'capabilities:node': 'overcloud-ceph-%index%'
+
