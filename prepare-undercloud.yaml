@@ -159,8 +159,8 @@
       name:
         - python-novajoin
     when:
-      - osp_version != 10
       - osp_version < 15
+
   - name: Install Basic Required Packages. OSP-15 and above. RHEL8
     dnf:
       name:
@@ -184,15 +184,16 @@
     when:
       - osp_version > 14
 
-  - name: Copy Certificates to all overcloud nodes
-    copy:
-      src: templates/overcloud-cacert.pem
-      dest: /etc/pki/ca-trust/source/anchors/
-      owner: root
-      group: root
+  #- name: Copy Certificates to all overcloud nodes
+  #  copy:
+  #    src: templates/overcloud-cacert.pem
+  #    dest: /etc/pki/ca-trust/source/anchors/
+  #    owner: root
+  #    group: root
 
-  - name: Extract CA
-    command: update-ca-trust extract
+  #- name: Extract CA
+  #  command: update-ca-trust extract
+
   - name: Create User Stack
     user:
       name: stack

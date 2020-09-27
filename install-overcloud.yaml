@@ -22,6 +22,58 @@
       dest: /home/stack
       remote_src: True
 
+  - name: Create ca index file
+    shell: |
+      touch /etc/pki/CA/index.txt
+      chmod 0644 /etc/pki/CA/index.txt
+    become: True
+
+  - name: Create ca serial file
+    shell: |
+      echo '1000' | sudo tee /etc/pki/CA/serial
+      chmod 0644 /etc/pki/CA/serial
+    become: True
+
+  - name: Create ca-cert directory
+    file:
+      path: /home/stack/ca-cert
+      state: directory
+      owner: stack
+      group: stack
+      mode: '0700'
+
+  - name: Copy ca files
+    copy:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      owner: "{{ item.owner }}"
+      group: "{{ item.group }}"
+      mode: "{{ item.mode }}"
+    become: True
+    with_items:
+      - { src: ansible-templates/ca-cert/ca.crt.pem, dest: /home/stack/ca-cert/ca.crt.pem, owner: stack, group: stack, mode: '0644' }
+      - { src: ansible-templates/ca-cert/ca.crt.pem, dest: "/etc/pki/ca-trust/source/anchors/ca-{{ domain }}.crt.pem", owner: root, group: root, mode: '0644' }
+      - { src: ansible-templates/ca-cert/ca.key.pem, dest: /home/stack/ca-cert/ca.key.pem, owner: stack, group: stack, mode: '0600' }
+      - { src: ansible-templates/ca-cert/server.key.pem, dest: /home/stack/ca-cert/server.key.pem, owner: stack, group: stack, mode: '0600' }
+      - { src: ansible-templates/ca-cert/server.csr.pem, dest: /home/stack/ca-cert/server.csr.pem, owner: stack, group: stack, mode: '0644' }
+      - { src: ansible-templates/ca-cert/server.crt.pem, dest: /home/stack/ca-cert/server.crt.pem, owner: stack, group: stack, mode: '0600' }
+
+  - name: Copy openssl.conf
+    template:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      owner: "{{ item.owner }}"
+      group: "{{ item.group }}"
+      mode: "{{ item.mode }}"
+    become: True
+    with_items:
+      - { src: ansible-templates/ca-cert/openssl.cnf, dest: /home/stack/ca-cert/openssl.cnf, owner: stack, group: stack, mode: '0644' }
+
+  - name: Update ca trust
+    shell: |
+      update-ca-trust extract
+    become: True
+
   - name: Generating Fencing Configuration from isntackenv.json
     shell: |
       source /home/stack/stackrc
@@ -88,10 +140,10 @@
     shell: |
       sudo docker login --username={{ rh_subcription_user }} --password={{ rh_subcription_password }} registry.access.redhat.com
 
-  #- name: Download container images
-  #  shell: |
-  #    sudo openstack overcloud container image upload \
-  #      --verbose --config-file /home/stack/templates/container-images.yaml
+  - name: Download container images
+    shell: |
+      sudo openstack overcloud container image upload \
+        --verbose --config-file /home/stack/templates/container-images.yaml
 
   - name: Generating Flavors and Binding it to Profile
     shell: |
