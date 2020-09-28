@@ -8,7 +8,7 @@
   description: |
     Controller role that has all the controler services loaded and handles
     Database, Messaging and Network functions.
-  CountDefault: 0
+  CountDefault: 1
   tags:
     - primary
     - controller
@@ -29,6 +29,7 @@
   deprecated_param_flavor: 'OvercloudControlFlavor'
   deprecated_param_image: 'controllerImage'
   deprecated_nic_config_name: 'controller.yaml'
+  update_serial: 1
   ServicesDefault:
     - OS::TripleO::Services::Aide
     - OS::TripleO::Services::AodhApi
@@ -181,13 +182,15 @@
 - name: Compute
   description: |
     Basic Compute Node role
-  CountDefault: 0
+  CountDefault: 1
   networks:
     - InternalApi
     - Tenant
     - Storage
     - External
   HostnameFormatDefault: '%stackname%-compute-%index%'
+  RoleParametersDefault:
+    TunedProfileName: "virtual-host"
   # Deprecated & backward-compatible values (FIXME: Make parameters consistent)
   # Set uses_deprecated_params to True if any deprecated params are used.
   uses_deprecated_params: True
@@ -199,6 +202,7 @@
   deprecated_server_resource_name: 'NovaCompute'
   deprecated_nic_config_name: 'compute.yaml'
   disable_upgrade_deployment: True
+  update_serial: 25
   ServicesDefault:
     - OS::TripleO::Services::Aide
     - OS::TripleO::Services::AuditD
@@ -224,6 +228,7 @@
     - OS::TripleO::Services::NeutronVppAgent
     - OS::TripleO::Services::NovaCompute
     - OS::TripleO::Services::NovaLibvirt
+    - OS::TripleO::Services::NovaLibvirtGuests
     - OS::TripleO::Services::NovaMigrationTarget
     - OS::TripleO::Services::Ntp
     - OS::TripleO::Services::ContainersLogrotateCrond
@@ -252,9 +257,11 @@
   networks:
     - Storage
     - StorageMgmt
-  CountDefault: 0
   HostnameFormatDefault: '%stackname%-ceph-%index%'
   uses_deprecated_params: False
+  #deprecated_nic_config_name: 'ceph-storage.yaml'
+  # CephOSD present so serial has to be 1
+  update_serial: 1
   ServicesDefault:
     - OS::TripleO::Services::Aide
     - OS::TripleO::Services::AuditD
@@ -281,4 +288,3 @@
     - OS::TripleO::Services::TripleoPackages
     - OS::TripleO::Services::Tuned
     - OS::TripleO::Services::Ptp
-
