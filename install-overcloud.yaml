@@ -16,11 +16,11 @@
   vars_files:
     - variables.yaml
   tasks:
-  - name: Unarchive templates.tar.bz2
-    unarchive:
-      src: /home/stack/templates.tar.bz2
-      dest: /home/stack
-      remote_src: True
+  #- name: Unarchive templates.tar.bz2
+  #  unarchive:
+  #    src: /home/stack/templates.tar.bz2
+  #    dest: /home/stack
+  #    remote_src: True
 
   - name: Create ca index file
     shell: |
@@ -79,6 +79,16 @@
       source /home/stack/stackrc
       openstack overcloud generate fencing --ipmi-lanplus --ipmi-level administrator --output /home/stack/templates/fencing.yaml /home/stack/instackenv.json
 
+  - name: Create templates directory
+    file:
+      path: "{{ item }}"
+      state: directory
+      owner: stack
+      group: stack
+      mode: '0755'
+    with_items:
+      - "/home/stack/templates/{{ osp_version }}/nic-configs"
+
   - name: Configure environments files
     template:
       src: "{{ item.src }}"
@@ -101,6 +111,9 @@
       - { src: ansible-templates/home/stack/templates/wipe-disks.yaml, dest: /home/stack/templates/wipe-disks.yaml }
       - { src: ansible-templates/home/stack/templates/wipe-disk.sh, dest: /home/stack/templates/wipe-disk.sh }
       - { src: ansible-templates/home/stack/templates/environments/55-rsvd_host_memory.yaml, dest: /home/stack/templates/environments/55-rsvd_host_memory.yaml }
+      - { src: ansible-templates/home/stack/templates/osp-13/nic-configs/controller.yaml, dest: /home/stack/templates/osp-13/nic-configs/controller.yaml }
+      - { src: ansible-templates/home/stack/templates/osp-13/nic-configs/compute.yaml, dest: /home/stack/templates/osp-13/nic-configs/compute.yaml }
+      - { src: ansible-templates/home/stack/templates/osp-13/nic-configs/ceph.yaml, dest: /home/stack/templates/osp-13/nic-configs/ceph.yaml }
     when:
       - osp_version == 13
 

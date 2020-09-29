@@ -39,6 +39,8 @@ if [ $retVal -ne 0 ]; then
     exit $retVal
 fi
 
+exit 0
+
 #install overcloud
 echo "Run install-overcloud"
 $ANSIBLE_PLAYBOOK --vault-password-file $VAULT_FILE --tags install-overcloud main.yml
