@@ -138,6 +138,7 @@
     yum:
       name:
         - screen
+        - tree
         - bash-completion
         - wget
         - mlocate

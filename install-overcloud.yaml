@@ -74,11 +74,6 @@
       update-ca-trust extract
     become: True
 
-  - name: Generating Fencing Configuration from isntackenv.json
-    shell: |
-      source /home/stack/stackrc
-      openstack overcloud generate fencing --ipmi-lanplus --ipmi-level administrator --output /home/stack/templates/fencing.yaml /home/stack/instackenv.json
-
   - name: Create templates directory
     file:
       path: "{{ item }}"
@@ -87,7 +82,13 @@
       group: stack
       mode: '0755'
     with_items:
-      - "/home/stack/templates/{{ osp_version }}/nic-configs"
+      - "/home/stack/templates/osp-{{ osp_version }}/nic-configs"
+      - "/home/stack/templates/environments"
+
+  - name: Generating Fencing Configuration from isntackenv.json
+    shell: |
+      source /home/stack/stackrc
+      openstack overcloud generate fencing --ipmi-lanplus --ipmi-level administrator --output /home/stack/templates/fencing.yaml /home/stack/instackenv.json
 
   - name: Configure environments files
     template:
@@ -200,3 +201,16 @@
       owner: stack
       group: stack
       mode: '0755'
+
+  - name: messages for debug
+    debug:
+      msg:
+        - "################# RUN TMUX ##################"
+        - "# tmux"
+        - "# su - stack"
+        - "$ cd /home/stack"
+        - "$ /home/stack/overcloud-deploy.sh"
+
+  - name: Pause to run playbook
+    pause: prompt='Did you run the /home/stack/overcloud-deploy.sh script??? Press return to continue. Press Ctrl+c and then "a" to abort'
+

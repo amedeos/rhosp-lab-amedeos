@@ -19,3 +19,11 @@
 - import_playbook: install-overcloud.yaml
   tags:
     - install-overcloud
+
+- import_playbook: create-workload.yaml
+  tags:
+    - create-workload
+
+- import_playbook: minor-update-undercloud.yaml
+  tags:
+    - minor-update-undercloud
