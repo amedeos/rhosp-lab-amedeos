@@ -16,6 +16,12 @@
   vars_files:
     - variables.yaml
   tasks:
+  - name: Backup containter templates
+    shell: |
+      DATE=$(date +%Y%m%d-%H%M%S)
+      cp -p -f /home/stack/templates/container-images.yaml /home/stack/templates/container-images.yaml.${DATE}
+      cp -p -f /home/stack/templates/docker-registry.yaml /home/stack/templates/docker-registry.yaml.${DATE}
+
   - name: Configure local container registry
     shell: |
       source /home/stack/stackrc
@@ -48,10 +54,16 @@
     async: 7200
     poll: 10
 
-  - name: Download container images
-    shell: |
-      sudo openstack overcloud container image upload \
-        --verbose --config-file /home/stack/templates/container-images.yaml
+  #- name: Download container images
+  #  shell: |
+  #    sudo openstack overcloud container image upload \
+  #      --verbose --config-file /home/stack/templates/container-images.yaml
+
+  #- name: Remove versionlock
+  #  shell: |
+  #    yum versionlock clear
+  #    yum clean all
+  #  become: True
 
   - name: Updating python-tripleoclient
     yum:
@@ -73,6 +85,7 @@
 
   - name: Reboot the undercloud
     reboot:
+    become: True
 
   #FIXME: improves the undecloud rhosp's services check (nova, neutron...)
   - name: Wait a fixed time for rhosp services to be up

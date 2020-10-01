@@ -1,0 +1,109 @@
+- name:  Add Undercloud VM/Node
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+  tasks:
+  - name: Add undercloud group-host
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_private_key_file: ansible-ssh/id_rsa
+      ansible_ssh_user: stack
+      groups:
+        - undercloud
+
+- name: Add Overcloud VM/Node
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+  tasks:
+  - name: Add controller group-host
+    add_host:
+      name: "{{ item }}.{{ domain }}"
+      ansible_ssh_private_key_file: ansible-ssh/id_rsa
+      ansible_ssh_user: heat-admin
+      groups:
+        - controller
+        - overcloud
+    with_items: 
+      - "{{ ctrl_n_list }}"
+
+  - name: Add compute group-host
+    add_host:
+      name: "{{ item }}.{{ domain }}"
+      ansible_ssh_private_key_file: ansible-ssh/id_rsa
+      ansible_ssh_user: heat-admin
+      groups:
+        - compute
+        - overcloud
+    with_items: 
+      - "{{ compute_n_list }}"
+
+  - name: Add ceph group-host
+    add_host:
+      name: "{{ item }}.{{ domain }}"
+      ansible_ssh_private_key_file: ansible-ssh/id_rsa
+      ansible_ssh_user: heat-admin
+      groups:
+        - ceph
+        - overcloud
+    with_items: 
+      - "{{ ceph_n_list }}"
+
+- name:  Registering overcloud
+  hosts: overcloud
+  vars_files:
+    - variables.yaml
+  tasks:
+  - name: Registering all overcloud nodes
+    redhat_subscription:
+      state: present
+      username: "{{ rh_subcription_user }}"
+      password: "{{ rh_subcription_password }}"
+      force_register: True
+    become: True
+    when:
+      - not skip_registration|bool
+
+  - name: Attach poolid
+    shell: |
+      subscription-manager attach --pool={{ rh_subcription_pool }}
+    become: True
+    when:
+      - not skip_registration|bool
+
+  - name: Set repository for the controller nodes
+    shell: |
+      subscription-manager repos --disable='*' --enable=rhel-7-server-rpms --enable=rhel-7-server-extras-rpms --enable=rhel-7-server-rh-common-rpms --enable=rhel-7-server-satellite-tools-6.3-rpms --enable=rhel-ha-for-rhel-7-server-rpms --enable=rhel-7-server-openstack-13-rpms --enable=rhel-7-server-rhceph-3-tools-rpms --enable=rhel-7-server-rhceph-3-mon-rpms
+    when:
+      - osp_version == 13
+    become: True
+    delegate_to: "{{ item }}"
+    run_once: True
+    with_items: "{{ groups['controller'] }}"
+
+  - name: Set repository for the compute nodes
+    shell: |
+      subscription-manager repos --disable='*' --enable=rhel-7-server-rpms --enable=rhel-7-server-extras-rpms --enable=rhel-7-server-rh-common-rpms --enable=rhel-7-server-satellite-tools-6.3-rpms --enable=rhel-7-server-openstack-13-rpms --enable=rhel-7-server-rhceph-3-tools-rpms
+    when:
+      - osp_version == 13
+    become: True
+    delegate_to: "{{ item }}"
+    run_once: True
+    with_items: "{{ groups['controller'] }}"
+
+  - name: Set repository for the ceph nodes
+    shell: |
+      subscription-manager repos --disable='*' --enable=rhel-7-server-rpms --enable=rhel-7-server-extras-rpms --enable=rhel-7-server-rh-common-rpms --enable=rhel-7-server-satellite-tools-6.3-rpms --enable=rhel-7-server-openstack-13-rpms --enable=rhel-7-server-rhceph-3-tools-rpms --enable=rhel-7-server-rhceph-3-osd-rpms
+    when:
+      - osp_version == 13
+    become: True
+    delegate_to: "{{ item }}"
+    run_once: True
+    with_items: "{{ groups['controller'] }}"
+
+  - name: Clean yum cache
+    command: yum clean all
+    become: True
+    when:
+      - osp_version == 13
+

@@ -27,3 +27,7 @@
 - import_playbook: minor-update-undercloud.yaml
   tags:
     - minor-update-undercloud
+
+- import_playbook: rhsm-overcloud.yaml
+  tags:
+    - rhsm-overcloud
