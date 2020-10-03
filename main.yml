@@ -31,3 +31,8 @@
 - import_playbook: rhsm-overcloud.yaml
   tags:
     - rhsm-overcloud
+
+- import_playbook: minor-update-overcloud.yaml
+  tags:
+    - minor-update-overcloud
+

@@ -32,12 +32,12 @@
       path: templates.tar.bz2
       state: absent
 
-  - name: Create a bz2 archive of the templates
-    archive:
-      path:
-        - templates
-      dest: templates.tar.bz2
-      format: bz2
+  #- name: Create a bz2 archive of the templates
+  #  archive:
+  #    path:
+  #      - templates
+  #    dest: templates.tar.bz2
+  #    format: bz2
 
   - name: Sleeping till ssh on undercloud vm is up
     wait_for:

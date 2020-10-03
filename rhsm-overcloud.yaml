@@ -89,7 +89,7 @@
     become: True
     delegate_to: "{{ item }}"
     run_once: True
-    with_items: "{{ groups['controller'] }}"
+    with_items: "{{ groups['compute'] }}"
 
   - name: Set repository for the ceph nodes
     shell: |
@@ -99,7 +99,7 @@
     become: True
     delegate_to: "{{ item }}"
     run_once: True
-    with_items: "{{ groups['controller'] }}"
+    with_items: "{{ groups['ceph'] }}"
 
   - name: Clean yum cache
     command: yum clean all

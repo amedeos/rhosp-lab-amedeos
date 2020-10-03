@@ -5,7 +5,7 @@ LOG_DIR=/home/stack/log-deploy
 mkdir -p ${LOG_DIR}
 
 source /home/stack/stackrc
-time openstack overcloud deploy \
+time openstack overcloud ceph-upgrade run \
 	--timeout 360 \
         --templates /usr/share/openstack-tripleo-heat-templates \
         --verbose \
@@ -28,5 +28,4 @@ time openstack overcloud deploy \
         -e /home/stack/templates/environments/45-inject-trust-anchor.yaml \
         -e /home/stack/templates/environments/35-ceph-config.yaml \
         -e /home/stack/templates/environments/55-rsvd_host_memory.yaml \
-        -e /home/stack/templates/fencing.yaml \
-        --log-file ${LOG_DIR}/overcloud-deploy-${LOG_DATE}.log
+        -e /home/stack/templates/fencing.yaml | tee -a ${LOG_DIR}/overcloud-ceph-upgrade-${LOG_DATE}.log

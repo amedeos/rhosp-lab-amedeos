@@ -1,0 +1,176 @@
+- name:  Add Undercloud VM/Node
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+  tasks:
+  - name: Add undercloud group-host
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_private_key_file: ansible-ssh/id_rsa
+      ansible_ssh_user: stack
+      groups:
+        - undercloud
+
+- name: Add Overcloud VM/Node
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+  tasks:
+  - name: Add controller group-host
+    add_host:
+      name: "{{ item }}.{{ domain }}"
+      ansible_ssh_private_key_file: ansible-ssh/id_rsa
+      ansible_ssh_user: heat-admin
+      groups:
+        - controller
+        - overcloud
+    with_items: 
+      - "{{ ctrl_n_list }}"
+
+  - name: Add compute group-host
+    add_host:
+      name: "{{ item }}.{{ domain }}"
+      ansible_ssh_private_key_file: ansible-ssh/id_rsa
+      ansible_ssh_user: heat-admin
+      groups:
+        - compute
+        - overcloud
+    with_items: 
+      - "{{ compute_n_list }}"
+
+  - name: Add ceph group-host
+    add_host:
+      name: "{{ item }}.{{ domain }}"
+      ansible_ssh_private_key_file: ansible-ssh/id_rsa
+      ansible_ssh_user: heat-admin
+      groups:
+        - ceph
+        - overcloud
+    with_items: 
+      - "{{ ceph_n_list }}"
+
+- name:  Run the overcloud update
+  hosts: undercloud
+  vars_files:
+    - variables.yaml
+  tasks:
+  - name: Copy overcloud-update-prepare.sh
+    template:
+      src: ansible-templates/home/stack/overcloud-update-prepare.sh
+      dest: /home/stack/overcloud-update-prepare.sh
+      owner: stack
+      group: stack
+      mode: '0755'
+
+  - name: messages for debug
+    debug:
+      msg:
+        - "################# RUN TMUX ##################"
+        - "# tmux"
+        - "# su - stack"
+        - "$ cd /home/stack"
+        - "$ /home/stack/overcloud-update-prepare.sh"
+
+  - name: Pause to run playbook
+    pause: prompt='Did you run the /home/stack/overcloud-update-prepare.sh script??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Copy overcloud-update-controller.sh
+    template:
+      src: ansible-templates/home/stack/overcloud-update-controller.sh
+      dest: /home/stack/overcloud-update-controller.sh
+      owner: stack
+      group: stack
+      mode: '0755'
+
+  - name: messages for debug
+    debug:
+      msg:
+        - "################# RUN TMUX ##################"
+        - "# tmux"
+        - "# su - stack"
+        - "$ cd /home/stack"
+        - "$ /home/stack/overcloud-update-controller.sh"
+
+  - name: Pause to run playbook
+    pause: prompt='Did you run the /home/stack/overcloud-update-controller.sh script??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Copy overcloud-update-compute.sh
+    template:
+      src: ansible-templates/home/stack/overcloud-update-compute.sh
+      dest: /home/stack/overcloud-update-compute.sh
+      owner: stack
+      group: stack
+      mode: '0755'
+
+  - name: messages for debug
+    debug:
+      msg:
+        - "################# RUN TMUX ##################"
+        - "# tmux"
+        - "# su - stack"
+        - "$ cd /home/stack"
+        - "$ /home/stack/overcloud-update-compute.sh"
+
+  - name: Pause to run playbook
+    pause: prompt='Did you run the /home/stack/overcloud-update-compute.sh script??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Copy overcloud-update-ceph.sh
+    template:
+      src: ansible-templates/home/stack/overcloud-update-ceph.sh
+      dest: /home/stack/overcloud-update-ceph.sh
+      owner: stack
+      group: stack
+      mode: '0755'
+
+  - name: messages for debug
+    debug:
+      msg:
+        - "################# RUN TMUX ##################"
+        - "# tmux"
+        - "# su - stack"
+        - "$ cd /home/stack"
+        - "$ /home/stack/overcloud-update-ceph.sh"
+
+  - name: Pause to run playbook
+    pause: prompt='Did you run the /home/stack/overcloud-update-ceph.sh script??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Copy overcloud-ceph-upgrade.sh
+    template:
+      src: ansible-templates/home/stack/overcloud-ceph-upgrade.sh
+      dest: /home/stack/overcloud-ceph-upgrade.sh
+      owner: stack
+      group: stack
+      mode: '0755'
+
+  - name: messages for debug
+    debug:
+      msg:
+        - "################# RUN TMUX ##################"
+        - "# tmux"
+        - "# su - stack"
+        - "$ cd /home/stack"
+        - "$ /home/stack/overcloud-ceph-upgrade.sh"
+
+  - name: Pause to run playbook
+    pause: prompt='Did you run the /home/stack/overcloud-ceph-upgrade.sh script??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Copy overcloud-update-converge.sh
+    template:
+      src: ansible-templates/home/stack/overcloud-update-converge.sh
+      dest: /home/stack/overcloud-update-converge.sh
+      owner: stack
+      group: stack
+      mode: '0755'
+
+  - name: messages for debug
+    debug:
+      msg:
+        - "################# RUN TMUX ##################"
+        - "# tmux"
+        - "# su - stack"
+        - "$ cd /home/stack"
+        - "$ /home/stack/overcloud-update-converge.sh"
+
+  - name: Pause to run playbook
+    pause: prompt='Did you run the /home/stack/overcloud-update-converge.sh script??? Press return to continue. Press Ctrl+c and then "a" to abort'
+

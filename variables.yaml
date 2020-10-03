@@ -62,25 +62,24 @@ ffu: 0
 skip_deploy: 0
 undercloud_memory: 16288
 undercloud_cpu: 4
-controller_memory: 16288
+controller_memory: 12228
 controller_cpu: 2
-compute_memory: 8144
+compute_memory: 6144
 compute_cpu: 2
-ceph_memory: 12288
+ceph_memory: 6144
 ceph_cpu: 2
 #lb_memory: 8192
 image_dir: /var/lib/libvirt/images
-image: rhel-server-7.8-update-3-x86_64-kvm.qcow2
-image_location: http://192.168.1.70/images/rhel-server-7.8-update-3-x86_64-kvm.qcow2
+image: rhel-server-7.9-x86_64-kvm.qcow2
+image_location: http://192.168.1.70/images/rhel-server-7.9-x86_64-kvm.qcow2
 image_instance: cirros-0.5.1-x86_64-disk.img
 image_instance_location: http://download.cirros-cloud.net/0.5.1/cirros-0.5.1-x86_64-disk.img
-num_controller: 1
-#ctrl_n: controller-1 controller-2 controller-3
-ctrl_n: controller-1
+num_controller: 3
+ctrl_n: controller-1 controller-2 controller-3
 ctrl_n_list:
   - controller-1
-  #- controller-2
-  #- controller-3
+  - controller-2
+  - controller-3
 num_compute: 1
 #compute_n: compute-1 compute-2
 compute_n: compute-1

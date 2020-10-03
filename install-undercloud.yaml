@@ -92,20 +92,6 @@
       crudini --set /home/stack/undercloud.conf DEFAULT discovery_iprange {{ undercloud_discovery_iprange }}
       crudini --set /home/stack/undercloud.conf DEFAULT inspection_iprange {{ undercloud_inspection_iprange }}
 
-  - name: downgrade libxslt
-    shell: |
-      sudo yum downgrade libxslt-1.1.28-5.el7.x86_64 -y
-
-  - name: install yum-plugin-versionlock
-    yum:
-      name: yum-plugin-versionlock
-      state: present
-    become: True
-
-  - name: lock libxslt
-    shell: |
-      sudo yum versionlock libxslt-* -y
-
   - name: messages for debug
     debug:
       msg:
