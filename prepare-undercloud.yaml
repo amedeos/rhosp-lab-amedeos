@@ -248,14 +248,14 @@
       out_interface: "{{ undercloud_local_interface }}"
       jump: MASQUERADE
 
-  - name: Copy All images to /home/stack
-    copy:
-      src: "{{ item }}"
-      dest: /home/stack/
-      owner: stack
-      group: stack
-    with_items:
-      #- /home/images/octavia-amphora-latest.qcow2
-      #- /home/images/fedora.qcow2
-      - templates.tar.bz2
-      #- osp-setup.sh
+#  - name: Copy All images to /home/stack
+#    copy:
+#      src: "{{ item }}"
+#      dest: /home/stack/
+#      owner: stack
+#      group: stack
+#    with_items:
+#      #- /home/images/octavia-amphora-latest.qcow2
+#      #- /home/images/fedora.qcow2
+#      - templates.tar.bz2
+#      #- osp-setup.sh
