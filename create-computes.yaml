@@ -10,6 +10,6 @@
 
   - name: Defining the Overcloud Compute Nodes
     shell: |
-      virt-install --ram {{ compute_memory }} --vcpus {{ compute_cpu }} --os-variant rhel7 --disk path={{ image_dir }}/{{ item }}.qcow2,device=disk,bus=virtio,format=qcow2 --noautoconsole --vnc --network bridge:br0 --network bridge:br0 --name {{ item }} --cpu host-passthrough --dry-run --print-xml > /tmp/{{ item }}.xml
+      virt-install --ram {{ compute_memory }} --vcpus {{ compute_cpu }} --os-variant rhel7 --disk path={{ image_dir }}/{{ item }}.qcow2,device=disk,bus=virtio,format=qcow2 --noautoconsole --vnc --network bridge:{{ bridge_n }} --network bridge:{{ bridge_n }} --name {{ item }} --cpu host-passthrough --dry-run --print-xml > /tmp/{{ item }}.xml
       virsh define /tmp/{{ item }}.xml
     with_items: "{{ compute_n_list }}"

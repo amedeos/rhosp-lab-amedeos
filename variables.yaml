@@ -1,4 +1,4 @@
-bridge_n: bridge-br0
+bridge_n: br0
 libguestfs_path: /usr/share/guestfs/appliance/
 ssh_pub: files/.ssh/id_rsa.pub
 ssh_key: files/.ssh/id_rsa
