@@ -129,6 +129,8 @@
       name:
         - ansible
         - tmux
+        - nmap
+        - bind-utils
         - vim
         - bash-completion
         - git
