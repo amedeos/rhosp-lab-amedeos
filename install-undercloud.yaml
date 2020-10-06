@@ -99,7 +99,7 @@
         - "# tmux"
         - "# su - stack"
         - "$ cd /home/stack"
-        - "$ openstack undercloud install"
+        - "$ time openstack undercloud install"
 
   - name: Pause to run playbook
     pause: prompt='Did you run the openstack undercloud install??? Press return to continue. Press Ctrl+c and then "a" to abort'

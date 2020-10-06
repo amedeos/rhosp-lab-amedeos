@@ -130,7 +130,9 @@
         - ansible
         - tmux
         - nmap
+        - tcpdump
         - bind-utils
+        - jq
         - vim
         - bash-completion
         - git
@@ -206,6 +208,14 @@
       protocol: icmp
       jump: ACCEPT
 
+  - name: Allow ipmi incoming traffic
+    iptables:
+      chain: INPUT
+      protocol: udp
+      source: 192.168.0.0/16
+      destination_port: 623
+      jump: ACCEPT
+
   - name: Set the last rule as REJECT for INPUT
     iptables:
       chain: INPUT
@@ -255,6 +265,17 @@
       state: restarted
       name: libvirtd
       enabled: yes
+
+  - name: ensure that bridge is up - wa
+    copy:
+      dest: /etc/cron.d/bridge-up
+      owner: root
+      group: root
+      mode: '0644'
+      content: |
+        SHELL=/bin/bash
+        PATH=/sbin:/bin:/usr/sbin:/usr/bin
+        */1 * * * * root /usr/sbin/ip link set {{ bridge_n }} up
 
   - name: clone repo
     shell: |
