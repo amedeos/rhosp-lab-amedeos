@@ -61,13 +61,13 @@ compose: 0
 ocp_osp: 0
 ffu: 0
 skip_deploy: 0
-undercloud_memory: 16288
+undercloud_memory: 24576
 undercloud_cpu: 4
-controller_memory: 12228
+controller_memory: 16384
 controller_cpu: 2
-compute_memory: 6144
+compute_memory: 12288
 compute_cpu: 2
-ceph_memory: 6144
+ceph_memory: 12288
 ceph_cpu: 2
 #lb_memory: 8192
 image_dir: /var/lib/libvirt/images
@@ -81,12 +81,11 @@ ctrl_n_list:
   - controller-1
   - controller-2
   - controller-3
-num_compute: 1
-#compute_n: compute-1 compute-2
-compute_n: compute-1
+num_compute: 2
+compute_n: compute-1 compute-2
 compute_n_list:
   - compute-1
-  #- compute-2
+  - compute-2
 num_ceph: 3
 ceph_n: ceph-1 ceph-2 ceph-3
 ceph_n_list:
