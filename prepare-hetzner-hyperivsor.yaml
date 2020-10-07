@@ -227,6 +227,12 @@
       source: 192.168.0.0/16
       jump: ACCEPT
 
+  - name: enable forward for 192.168.0.0/16
+    iptables:
+      chain: FORWARD
+      destination: 192.168.0.0/16
+      jump: ACCEPT
+
   - name: enable MASQUERADING
     iptables:
       table: nat
