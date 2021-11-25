@@ -1,3 +1,102 @@
+- name:  Add hypervisor host in inventory
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Add all hypervisor group-host
+    add_host:
+      name: "{{ item.hypervisor_name }}"
+      ansible_ssh_user: "{{ item.hypervisor_user }}"
+      ansible_ssh_private_key_file: "{{ item.hypervisor_ssh_key }}"
+      groups:
+        - hypervisor_host
+    with_items:
+      - "{{ controller_nodes }}"
+      - "{{ compute_nodes }}"
+      - "{{ ceph_nodes }}"
+    when: item.hypervisor_name != "localhost"
+
+  - name: Generating instackenv.json - Step 1
+    shell:
+      cmd: |
+        rm -f /tmp/instackenv.tmp
+        rm -f /tmp/instackenv.json
+        rm -rf /tmp/instackenv-single
+        rm -rf /tmp/instackenv-fetched
+        mkdir -p /tmp/instackenv-single
+    delegate_to: "{{ item.hypervisor_name }}"
+    with_items:
+      - "{{ controller_nodes }}"
+      - "{{ compute_nodes }}"
+      - "{{ ceph_nodes }}"
+
+  - name: Generating instackenv.json - Step 2
+    shell:
+      cmd: |
+        rm -f /tmp/instackenv.tmp
+        rm -f /tmp/instackenv.json
+        rm -rf /tmp/instackenv-single
+        rm -rf /tmp/instackenv-fetched
+        cat >> /tmp/instackenv.tmp << EOF
+        {
+          "nodes": [
+        EOF
+        mkdir -p /tmp/instackenv-single
+        mkdir -p /tmp/instackenv-fetched
+    delegate_to: "localhost"
+    run_once: True
+    with_items:
+      - "{{ controller_nodes }}"
+      - "{{ compute_nodes }}"
+      - "{{ ceph_nodes }}"
+
+  - name: Generating instackenv.json - Step 3
+    shell:
+      cmd: |
+        MAC=$(virsh domiflist {{ item.name }} | grep bridge | head -1 | awk {'print $5'})
+        cat << EOF >> /tmp/instackenv-single/instackenv-{{ item.name }}
+        {
+          "name": "{{ item.name }}",
+          "pm_addr": "{{ item.vbmc_ip }}",
+          "pm_port": "{{ item.vbmc_port }}",
+          "pm_password": "{{ secure_password }}",
+          "pm_type": "ipmi",
+          "mac": [
+            "${MAC}"
+          ],
+          "pm_user": "admin"
+        }
+        EOF
+    delegate_to: "{{ item.hypervisor_name }}"
+    with_items:
+      - "{{ controller_nodes }}"
+      - "{{ compute_nodes }}"
+      - "{{ ceph_nodes }}"
+
+  - name: Generating instackenv.json - Step 4
+    fetch:
+      src: "/tmp/instackenv-single/instackenv-{{ item.name }}"
+      dest: "/tmp/instackenv-fetched/instackenv-{{ item.name }}"
+      flat: True
+    delegate_to: "{{ item.hypervisor_name }}"
+    with_items:
+      - "{{ controller_nodes }}"
+      - "{{ compute_nodes }}"
+      - "{{ ceph_nodes }}"
+
+  - name: Generating instackenv.json - Step 5
+    shell:
+      cmd: |
+        for f in $(ls /tmp/instackenv-fetched/instackenv-*); do echo "file: $f"; sed 's/\}/\},/g' $f >> /tmp/instackenv.tmp;  done
+        sed -i '$ s/.$//' /tmp/instackenv.tmp
+        echo "]" >> /tmp/instackenv.tmp
+        echo "}" >> /tmp/instackenv.tmp
+        jq . /tmp/instackenv.tmp > /tmp/instackenv.json
+    delegate_to: "localhost"
+    run_once: True
+
+
 - name:  Add Undercloud VM/Node
   hosts: localhost
   vars_files:
@@ -10,51 +109,6 @@
       ansible_ssh_user: stack
       groups:
         - undercloud
-
-  - name: Generating instackenv.json - Step 1
-    shell:
-      cmd: |
-        rm -f /tmp/instackenv.tmp
-        cat >> /tmp/instackenv.tmp << EOF
-        {
-          "nodes": [
-        EOF
-        for I in {{ all_n }}; do
-          MAC=$(virsh domiflist $I | grep bridge | head -1 | awk {'print $5'})
-          IPBMC=$(vbmc list | grep $I | awk '{print $6}')
-        cat << EOF >> /tmp/instackenv.tmp
-        {
-          "name": "$I",
-          "pm_addr": "$IPBMC",
-          "pm_password": "{{ secure_password }}",
-          "pm_type": "ipmi",
-          "mac": [
-            "${MAC}"
-          ],
-          "pm_user": "admin"
-        },
-        EOF
-        done
-
-  - name: Generating instackenv.json - Step 2 Remove last line
-    lineinfile:
-      dest: /tmp/instackenv.tmp
-      regexp: ''
-      insertafter: EOF
-      line: ''
-
-  - name: Generating instackenv.json - Step 3
-    shell:
-      cmd: |
-        cat >> /tmp/instackenv.tmp << EOF
-            }
-          ]
-        }
-        EOF
-
-  - name: Generating instackenv.json - Step 4
-    shell: |
-      jq . /tmp/instackenv.tmp > /tmp/instackenv.json
 
 - name:  Install Undercloud
   hosts: undercloud
