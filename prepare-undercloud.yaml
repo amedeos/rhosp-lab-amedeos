@@ -6,7 +6,7 @@
   - name: Copying Template Image to create undercloud. RHEL7
     copy:
       src: "{{ image_dir }}/rhel7-undercloud.qcow2"
-      dest: "{{ image_dir }}/undercloud.qcow2"
+      dest: "{{ image_dir }}ssd/undercloud.qcow2"
     when:
       - osp_version < 16
         
@@ -19,7 +19,7 @@
 
   - name: Defining the undercloud vm
     shell: |
-      virt-install --ram {{ undercloud_memory }} --vcpus {{ undercloud_cpu }} --os-variant rhel7 --disk path={{ image_dir }}/undercloud.qcow2,device=disk,bus=virtio,format=qcow2 --noautoconsole --vnc --network network:default --network bridge:{{ bridge_n }} --name undercloud --cpu host-passthrough --dry-run --print-xml > /tmp/undercloud.xml
+      virt-install --ram {{ undercloud_memory }} --vcpus {{ undercloud_cpu }} --os-variant rhel7 --disk path={{ image_dir }}ssd/undercloud.qcow2,device=disk,bus=virtio,format=qcow2 --noautoconsole --vnc --network network:default --network bridge:{{ bridge_n }} --name undercloud --cpu host-passthrough --dry-run --print-xml > /tmp/undercloud.xml
       virsh define /tmp/undercloud.xml
 
   - name: Starting undercloud vm
