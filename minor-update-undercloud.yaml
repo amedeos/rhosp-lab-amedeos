@@ -54,10 +54,10 @@
     async: 7200
     poll: 10
 
-  #- name: Download container images
-  #  shell: |
-  #    sudo openstack overcloud container image upload \
-  #      --verbose --config-file /home/stack/templates/container-images.yaml
+  - name: Download container images
+    shell: |
+      sudo openstack overcloud container image upload \
+        --verbose --config-file /home/stack/templates/container-images.yaml
 
   #- name: Remove versionlock
   #  shell: |
