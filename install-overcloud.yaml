@@ -152,7 +152,7 @@
 
   - name: Create auth file for registry.access.redhat.com
     shell: |
-      sudo docker login --username={{ rh_subcription_user }} --password={{ rh_subcription_password }} registry.access.redhat.com
+      sudo docker login registry.redhat.io -u='{{ rhregistry_user }}' -p='{{ rhregistry_password }}'
 
   - name: Download container images
     shell: |
