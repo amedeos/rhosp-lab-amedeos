@@ -1,0 +1,7 @@
+- import_playbook: ffu-prepare-undercloud.yaml
+  tags:
+    - ffu-prepare-undercloud
+
+- import_playbook: ffu-preliminary-check.yaml
+  tags:
+    - ffu-preliminary-check

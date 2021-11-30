@@ -1,0 +1,178 @@
+- name:  Add hypervisor host in inventory
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Add all hypervisor group-host
+    add_host:
+      name: "{{ item.hypervisor_name }}"
+      ansible_ssh_user: "{{ item.hypervisor_user }}"
+      ansible_ssh_private_key_file: "{{ item.hypervisor_ssh_key }}"
+      groups:
+        - hypervisor_host
+    with_items: "{{ undercloud_nodes }}"
+    when: item.hypervisor_name != "localhost"
+
+- name: Write commodity files
+  hosts:
+    - localhost
+    - hypervisor_host
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Update /etc/hosts with undercloud entry
+    lineinfile:
+      path: /etc/hosts
+      backup: True
+      regexp: "{{ undercloud_n }}.{{ domain }}"
+      line: "{{ undercloud_ip }}\t{{ undercloud_n }}.{{ domain }}\t{{ undercloud_n }}"
+      state: present
+    delegate_to: "{{ item.hypervisor_name }}"
+    run_once: True
+    with_items: "{{ undercloud_nodes }}"
+
+  - name: Ensure .ssh directory is present
+    file:
+      path: ~/.ssh
+      state: directory
+      mode: '0700'
+    delegate_to: "{{ item.hypervisor_name }}"
+    run_once: True
+    with_items: "{{ undercloud_nodes }}"
+
+  - name: Create ssh/config file
+    file:
+      path: ~/.ssh/config
+      state: touch
+      mode: '0644'
+    delegate_to: "{{ item.hypervisor_name }}"
+    run_once: True
+    with_items: "{{ undercloud_nodes }}"
+
+  - name: Write ssh/config file
+    blockinfile:
+      path: ~/.ssh/config
+      backup: True
+      state: present
+      block: |
+        Host {{ undercloud_n }}.{{ domain }}
+        IdentityFile ~/ansible-ssh/id_rsa
+    delegate_to: "{{ item.hypervisor_name }}"
+    run_once: True
+    with_items: "{{ undercloud_nodes }}"
+
+  - name: Remove temp directory for ssh key
+    file:
+      path: ~/ansible-ssh
+      state: absent
+    delegate_to: "{{ item.hypervisor_name }}"
+    run_once: True
+    with_items: "{{ undercloud_nodes }}"
+
+  - name: Create temp directory for ssh key
+    file:
+      path: ~/ansible-ssh
+      state: directory
+      mode: '0700'
+    delegate_to: "{{ item.hypervisor_name }}"
+    run_once: True
+    with_items: "{{ undercloud_nodes }}"
+
+  - name: Write ssh key
+    template:
+      dest: "~/ansible-ssh/id_rsa"
+      src: "{{ ssh_key }}"
+      mode: 0600
+    delegate_to: "{{ item.hypervisor_name }}"
+    run_once: True
+    with_items: "{{ undercloud_nodes }}"
+
+  - name: Add newline at the end of ssh key
+    shell: |
+      echo  >> ~/ansible-ssh/id_rsa
+    delegate_to: "{{ item.hypervisor_name }}"
+    run_once: True
+    with_items: "{{ undercloud_nodes }}"
+
+  - name: Write commodity hosts-undercloud-root file
+    copy:
+      dest: hosts-undercloud-root
+      content: |
+        [undercloud]
+        {{ undercloud_n }}.{{ domain }} ansible_ssh_user=root ansible_ssh_pass={{ secure_password }} ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand="ssh -W %h:%p -q {{ item.hypervisor_user }}@{{ item.hypervisor_name }}"'
+    when: item.hypervisor_name != "localhost"
+    with_items: "{{ undercloud_nodes }}"
+
+  - name: Write commodity hosts-undercloud-stack file
+    copy:
+      dest: hosts-undercloud-stack
+      content: |
+        [undercloud]
+        {{ undercloud_n }}.{{ domain }} ansible_ssh_user=stack ansible_ssh_pass={{ secure_password }} ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand="ssh -W %h:%p -q {{ item.hypervisor_user }}@{{ item.hypervisor_name }}"'
+    when: item.hypervisor_name != "localhost"
+    with_items: "{{ undercloud_nodes }}"
+
+  - name: Write commodity hosts-undercloud-root file for localhost
+    copy:
+      dest: hosts-undercloud-root
+      content: |
+        [undercloud]
+        {{ undercloud_n }}.{{ domain }} ansible_ssh_user=root ansible_ssh_pass={{ secure_password }} ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null '
+    when: item.hypervisor_name == "localhost"
+    with_items: "{{ undercloud_nodes }}"
+
+  - name: Write commodity hosts-undercloud-stack file for localhost
+    copy:
+      dest: hosts-undercloud-stack
+      content: |
+        [undercloud]
+        {{ undercloud_n }}.{{ domain }} ansible_ssh_user=stack ansible_ssh_pass={{ secure_password }} ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null '
+    when: item.hypervisor_name == "localhost"
+    with_items: "{{ undercloud_nodes }}"
+
+- name:  Add Undercloud VM/Node
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Add undercloud group-host
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_pass: "{{ secure_password }}"
+      ansible_ssh_user: stack
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand="ssh -W %h:%p -q {{ item.hypervisor_user }}@{{ item.hypervisor_name }}"'
+      groups:
+        - undercloud
+    when: item.hypervisor_name != "localhost"
+    with_items:
+      - "{{ undercloud_nodes }}"
+
+  - name: Add undercloud group-host for localhost hypervisor
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_pass: "{{ secure_password }}"
+      ansible_ssh_user: stack
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null '
+      groups:
+        - undercloud
+    when: item.hypervisor_name == "localhost"
+    with_items:
+      - "{{ undercloud_nodes }}"
+
+- name:  Prepare Undercloud Node
+  hosts: undercloud
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Create ansible inventory file
+    shell: |
+      source ~/stackrc
+      tripleo-ansible-inventory --static-yaml-inventory ~/inventory.yaml --stack overcloud
+
+  - name: Test ansible ping
+    shell: |
+      ansible -m ping all -i ~/inventory.yaml -b -o
