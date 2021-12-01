@@ -50,6 +50,11 @@
     - variables.yaml
     - overcloud-ansible-nodes.json
   tasks:
+  - name: Re-Create ansible inventory file
+    shell: |
+      source ~/stackrc
+      tripleo-ansible-inventory --static-yaml-inventory ~/inventory.yaml --stack overcloud
+
   - name: Check available space
     shell: |
       ansible -m shell all -i ~/inventory.yaml -a 'df -h -t xfs'
@@ -97,4 +102,117 @@
 
   - name: Pause to check nic link on Ceph
     pause: prompt='Is there enough link??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Backup OC network files
+    shell: |
+      ansible -m shell 'all,!Undercloud' -i /home/stack/inventory.yaml -b -a "tar czvf /root/backup_pre_ffu_etc_sysconfig_network-scripts_$(date '+%Y-%m-%d-%H%M').tar.gz /etc/sysconfig/network-scripts/ifcfg-* /etc/sysconfig/network-scripts/route-* /etc/os-net-config/config.json "
+
+  - name: Backup UC network files
+    shell: |
+      sudo tar czvf /root/backup_pre_ffu_etc_sysconfig_network-scripts_$(date '+%Y-%m-%d-%H%M').tar.gz /etc/sysconfig/network-scripts/ifcfg-* /etc/os-net-config/config.json
+
+  - name: Verify UC Subscription
+    shell: |
+      sudo subscription-manager status
+    register: subscription_status
+
+  - name: Print UC Subscription status
+    debug:
+      var: subscription_status.stdout_lines
+
+  - name: Pause to check UC Subscription
+    pause: prompt='Is UC subscribed??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Verify OC Subscription
+    shell: |
+      ansible -m shell 'all:!Undercloud'  -f5 -i /home/stack/inventory.yaml -b -a "sudo subscription-manager status | egrep 'Overall Status: (Current|Disabled)'" -o
+    register: subscription_status
+
+  - name: Print OC Subscription status
+    debug:
+      var: subscription_status.stdout_lines
+
+  - name: Pause to check OC Subscription
+    pause: prompt='Are OC subscribed??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Check pacemaker cluster
+    shell: |
+      ansible -m shell Controller[0] -i /home/stack/inventory.yaml -b -a "pcs status"
+    register: pcs_status
+
+  - name: Print pacemaker status
+    debug:
+      var: pcs_status.stdout_lines
+
+  - name: Pause to check pacemaker status
+    pause: prompt='Is pacemaker status good??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Check galera status
+    shell: |
+      ansible -m shell Controller -i /home/stack/inventory.yaml -b -a 'export PASSWORD=$(/bin/hiera -c /etc/puppet/hiera.yaml mysql::server::root_password) ; mysql -u root -p$PASSWORD -e "SHOW STATUS LIKE '"'"'wsrep_local_state_comment'"'"' ;"  ; mysql -u root -p$PASSWORD -e "SHOW STATUS LIKE '"'"'wsrep_cluster_size'"'"' ;" '
+    register: galera_status
+
+  - name: Print galera status
+    debug:
+      var: galera_status.stdout_lines
+
+  - name: Pause to check galera status
+    pause: prompt='Are galera status good??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Verify OC nodes in maintenance
+    shell: |
+      source /home/stack/stackrc
+      openstack baremetal node list | egrep  '[a-z0-9]+-[a-z0-9]+-[a-z0-9]+-[a-z0-9]+-[a-z0-9]+' | awk '{ print $13 }' | egrep -v False
+    register: maintenance_oc
+    failed_when: maintenance_oc.rc == 0 or maintenance_oc.rc >= 2
+
+  - name: Reset root password on OC nodes
+    shell: |
+      ansible -m shell 'all:!Undercloud' -i /home/stack/inventory.yaml -b -a 'echo -n {{ secure_password }} | passwd root --stdin '
+
+  - name: Reset root password on UC
+    shell: |
+      echo -n {{ secure_password }} | sudo passwd root --stdin
+
+  - name: Set repository for Controller
+    shell: |
+      ansible -m shell Controller -i /home/stack/inventory.yaml -b -a "subscription-manager repos --disable=*" | egrep '^controller-[0-9]'
+      ansible -m shell Controller -i /home/stack/inventory.yaml -b -a "subscription-manager repos --enable=rhel-7-server-rpms --enable=rhel-7-server-extras-rpms --enable=rhel-7-server-rh-common-rpms --enable=rhel-ha-for-rhel-7-server-rpms --enable=rhel-7-server-openstack-13-rpms --enable=rhel-7-server-rhceph-3-tools-rpms --enable=rhel-7-server-rhceph-3-mon-rpms"
+    register: repository_status
+
+  - name: Print Controller repository
+    debug:
+      var: repository_status.stdout_lines
+
+  - name: Check if on Controller there are 7 repos
+    shell: |
+      ansible -m shell Controller -i /home/stack/inventory.yaml -b -a "subscription-manager repos --list-enabled | egrep 'Repo ID:\s+(rhel-7-server-rpms|rhel-7-server-extras-rpms|rhel-7-server-rh-common-rpms|rhel-ha-for-rhel-7-server-rpms|rhel-7-server-openstack-13-rpms|rhel-7-server-rhceph-3-tools-rpms|rhel-7-server-rhceph-3-mon-rpms)' | wc -l | grep 7 "
+
+  - name: Set repository for Ceph
+    shell: |
+      ansible -m shell Ceph -i /home/stack/inventory.yaml -b -a "subscription-manager repos --disable=*" | egrep '^ceph-[0-9]'
+      ansible -m shell Ceph -i /home/stack/inventory.yaml -b -a "subscription-manager repos --enable=rhel-7-server-rpms --enable=rhel-7-server-extras-rpms --enable=rhel-7-server-rh-common-rpms --enable=rhel-ha-for-rhel-7-server-rpms --enable=rhel-7-server-openstack-13-rpms --enable=rhel-7-server-rhceph-3-tools-rpms --enable=rhel-7-server-rhceph-3-mon-rpms --enable=rhel-7-server-rhceph-3-osd-rpms"
+    register: repository_status
+
+  - name: Print Ceph repository
+    debug:
+      var: repository_status.stdout_lines
+
+  - name: Check if on Ceph there are 8 repos
+    shell: |
+      ansible -m shell Ceph -i /home/stack/inventory.yaml -b -a "subscription-manager repos --list-enabled | egrep 'Repo ID:\s+(rhel-7-server-rpms|rhel-7-server-extras-rpms|rhel-7-server-rh-common-rpms|rhel-ha-for-rhel-7-server-rpms|rhel-7-server-openstack-13-rpms|rhel-7-server-rhceph-3-tools-rpms|rhel-7-server-rhceph-3-mon-rpms|rhel-7-server-rhceph-3-osd-rpms)' | wc -l | grep 8 "
+
+  - name: Set repository for Compute
+    shell: |
+      ansible -m shell Compute -i /home/stack/inventory.yaml -b -a "subscription-manager repos --disable=*" | egrep '^compute-[0-9]'
+      ansible -m shell Compute -i /home/stack/inventory.yaml -b -a "subscription-manager repos --enable=rhel-7-server-rpms --enable=rhel-7-server-extras-rpms --enable=rhel-7-server-rh-common-rpms --enable=rhel-ha-for-rhel-7-server-rpms --enable=rhel-7-server-openstack-13-rpms --enable=rhel-7-server-rhceph-3-tools-rpms"
+    register: repository_status
+
+  - name: Print Compute repository
+    debug:
+      var: repository_status.stdout_lines
+
+  - name: Check if on Compute there are 6 repos
+    shell: |
+      ansible -m shell Compute -i /home/stack/inventory.yaml -b -a "subscription-manager repos --list-enabled | egrep 'Repo ID:\s+(rhel-7-server-rpms|rhel-7-server-extras-rpms|rhel-7-server-rh-common-rpms|rhel-ha-for-rhel-7-server-rpms|rhel-7-server-openstack-13-rpms|rhel-7-server-rhceph-3-tools-rpms)' | wc -l | grep 6 " -o
 
