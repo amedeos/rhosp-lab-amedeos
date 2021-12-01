@@ -1,0 +1,182 @@
+- name:  Add hypervisor host in inventory
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Add all hypervisor group-host
+    add_host:
+      name: "{{ item.hypervisor_name }}"
+      ansible_ssh_user: "{{ item.hypervisor_user }}"
+      ansible_ssh_private_key_file: "{{ item.hypervisor_ssh_key }}"
+      groups:
+        - hypervisor_host
+    with_items: "{{ undercloud_nodes }}"
+    when: item.hypervisor_name != "localhost"
+
+- name:  Add Undercloud VM/Node
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Add undercloud group-host
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_pass: "{{ secure_password }}"
+      ansible_ssh_user: stack
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand="ssh -W %h:%p -q {{ item.hypervisor_user }}@{{ item.hypervisor_name }}"'
+      groups:
+        - undercloud
+    when: item.hypervisor_name != "localhost"
+    with_items:
+      - "{{ undercloud_nodes }}"
+
+  - name: Add undercloud group-host for localhost hypervisor
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_pass: "{{ secure_password }}"
+      ansible_ssh_user: stack
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null '
+      groups:
+        - undercloud
+    when: item.hypervisor_name == "localhost"
+    with_items:
+      - "{{ undercloud_nodes }}"
+
+- name: Upgrade RHEL on UC
+  hosts: undercloud
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Disable OpenStack services
+    shell: |
+      sudo systemctl stop 'openstack-*' httpd haproxy mariadb 'rabbitmq*' docker xinetd
+    register: disable_services
+
+  #- name: Print disable services output
+  #  debug:
+  #    var: disable_services.stdout_lines
+
+  #- name: Pause to check pacemaker status
+  #  pause: prompt='Are the OpenStack services stopped??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Remove OpenStack services
+    shell: |
+      sudo yum -y remove '*el7ost*' 'galera*' 'haproxy*' \
+        httpd 'mysql*' 'pacemaker*' xinetd python-jsonpointer \
+        qemu-kvm-common-rhev qemu-img-rhev 'rabbit*' \
+        'redis*' \
+        -- \
+        -'*openvswitch*' -python-docker -python-PyMySQL \
+        -python-pysocks -python2-asn1crypto -python2-babel \
+        -python2-cffi -python2-cryptography -python2-dateutil \
+        -python2-idna -python2-ipaddress -python2-jinja2 \
+        -python2-jsonpatch -python2-markupsafe -python2-pyOpenSSL \
+        -python2-requests -python2-six -python2-urllib3 \
+        -python-httplib2 -python-passlib -python2-netaddr -ceph-ansible
+    register: remove_services
+  
+  - name: Print services removal output
+    debug:
+      var: remove_services.stdout_lines
+
+  - name: Pause to check pacemaker status
+    pause: prompt='Are the OpenStack services removed??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Ensure docker is stopped
+    systemd:
+      name: docker
+      state: stopped 
+    become: True
+
+  - name: Remove httpd and docker directories
+    shell: |
+      sudo rm -rf /etc/httpd /var/lib/docker
+
+  - name: Install leapp
+    yum:
+      name: leapp
+      state: latest
+    become: True
+
+  - name: Refresh subscription
+    shell: |
+      sudo subscription-manager refresh
+
+  - name: Add openvswitch2.11 to leapp to_remove
+    lineinfile:
+      path: /etc/leapp/transaction/to_remove
+      regexp: '^openvswitch'
+      line: openvswitch2.11
+      backup: False
+    become: True
+
+  - name: Add openvswitch2.15 to leapp to_install
+    lineinfile:
+      path: /etc/leapp/transaction/to_install
+      regexp: '^openvswitch'
+      line: openvswitch2.15
+      backup: False
+    become: True
+
+  - name: Add ceph-ansible to leapp to_keep
+    lineinfile:
+      path: /etc/leapp/transaction/to_keep
+      regexp: '^ceph-ansible'
+      line: ceph-ansible
+      backup: False
+    become: True
+
+  - name: Adjust kernel modules
+    shell: |
+      for module in pata_acpi floppy; do sudo sed -i "/^${module}$/d" /usr/share/leapp-repository/repositories/system_upgrade/el7toel8/actors/kernel/checkkerneldrivers/files/removed_drivers.txt; done
+
+  - name: Remove pam_pkcs11 module
+    shell: |
+      sudo leapp answer --add --section remove_pam_pkcs11_module_check.confirm=True
+
+  - name: Remove the persistent network names
+    shell: |
+      sudo rm -f /usr/share/leapp-repository/repositories/system_upgrade/el7toel8/actors/persistentnetnamesdisable/actor.py
+
+  - name: Copy leapp script for UC
+    copy:
+      dest: /home/stack/leapp-run-uc.sh
+      owner: stack
+      group: stack
+      mode: 0755
+      content: |
+        export LEAPP_UNSUPPORTED=1
+        export LEAPP_DEVEL_TARGET_RELEASE=8.4
+        sudo -E leapp upgrade --debug --enablerepo rhel-8-for-x86_64-baseos-eus-rpms --enablerepo rhel-8-for-x86_64-appstream-eus-rpms --enablerepo fast-datapath-for-rhel-8-x86_64-rpms --enablerepo ansible-2.9-for-rhel-8-x86_64-rpms 2>&1 | tee -a /home/stack/logs/osp16_uc_leapp_upgrade_$(date '+%Y-%m-%d-%H%M').txt
+
+  - name: messages for debug
+    debug:
+      msg:
+        - "################# RUN TMUX ##################"
+        - "# tmux"
+        - "# su - stack"
+        - "$ cd /home/stack"
+        - "$ /home/stack/leapp-run-uc.sh"
+
+  - name: Pause to run playbook
+    pause: prompt='Did you run the /home/stack/leapp-run-uc.sh script??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Create .autorelabel file
+    shell: |
+      sudo touch /.autorelabel
+
+  - name: Reboot UC
+    reboot:
+      reboot_timeout: 7200
+    become: True
+
+  - name: re-run gather facts
+    setup:
+
+  #TODO: check this step after minor 16.2.1
+  - name: Remove the Leapp packages from the transaction exclusion
+    shell: |
+      sudo dnf config-manager --save --setopt exclude=''

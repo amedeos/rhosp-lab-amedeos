@@ -14,3 +14,7 @@
   tags:
     - ffu-validating-rhosp13
 
+- import_playbook: ffu-uc-rhel-upgrade.yaml
+  tags:
+    - ffu-uc-rhel-upgrade
+
