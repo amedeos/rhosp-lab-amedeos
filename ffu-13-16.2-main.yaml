@@ -5,3 +5,8 @@
 - import_playbook: ffu-preliminary-check.yaml
   tags:
     - ffu-preliminary-check
+
+- import_playbook: ffu-rear-backup.yaml
+  tags:
+    - ffu-rear-backup
+
