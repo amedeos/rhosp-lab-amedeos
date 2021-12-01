@@ -18,3 +18,7 @@
   tags:
     - ffu-uc-rhel-upgrade
 
+- import_playbook: ffu-uc-rhosp-upgrade.yaml
+  tags:
+    - ffu-uc-rhosp-upgrade
+

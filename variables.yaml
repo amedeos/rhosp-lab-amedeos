@@ -89,6 +89,7 @@ undercloud_ip: 192.168.122.30
 undercloud_ip_prv: 192.168.201.30
 undercloud_netmask: 24
 undercloud_local_interface: eth1
+undercloud_local_interface_osp16: em1
 undercloud_public_vip: 192.168.201.98
 undercloud_admin_vip: 192.168.201.99
 undercloud_dhcp_start: 192.168.201.120
