@@ -10,3 +10,7 @@
   tags:
     - ffu-rear-backup
 
+- import_playbook: ffu-validating-rhosp13.yaml
+  tags:
+    - ffu-validating-rhosp13
+

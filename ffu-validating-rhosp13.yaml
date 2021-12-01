@@ -1,0 +1,149 @@
+- name:  Add hypervisor host in inventory
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Add all hypervisor group-host
+    add_host:
+      name: "{{ item.hypervisor_name }}"
+      ansible_ssh_user: "{{ item.hypervisor_user }}"
+      ansible_ssh_private_key_file: "{{ item.hypervisor_ssh_key }}"
+      groups:
+        - hypervisor_host
+    with_items: "{{ undercloud_nodes }}"
+    when: item.hypervisor_name != "localhost"
+
+- name:  Add Undercloud VM/Node
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Add undercloud group-host
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_pass: "{{ secure_password }}"
+      ansible_ssh_user: stack
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand="ssh -W %h:%p -q {{ item.hypervisor_user }}@{{ item.hypervisor_name }}"'
+      groups:
+        - undercloud
+    when: item.hypervisor_name != "localhost"
+    with_items:
+      - "{{ undercloud_nodes }}"
+
+  - name: Add undercloud group-host for localhost hypervisor
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_pass: "{{ secure_password }}"
+      ansible_ssh_user: stack
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null '
+      groups:
+        - undercloud
+    when: item.hypervisor_name == "localhost"
+    with_items:
+      - "{{ undercloud_nodes }}"
+
+- name: Validate RHOSP13 before upgrade
+  hosts: undercloud
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Ensure logs directory is present
+    file:
+      path: /home/stack/logs
+      state: directory
+      mode: 0755
+      owner: stack
+      group: stack
+
+  - name: Copy pre-upgrade-validations.sh script
+    template:
+      src: ansible-templates/home/stack/scripts/pre-upgrade-validations.sh
+      dest: /home/stack/pre-upgrade-validations.sh
+      owner: stack
+      group: stack
+      mode: 0755
+
+  - name: Execute pre-upgrade-validations.sh script
+    shell: |
+      source /home/stack/stackrc
+      /home/stack/pre-upgrade-validations.sh 2>&1 | tee -a /home/stack/logs/osp13_pre-upgrade-validations-$(date +%Y-%m-%d-%H%M).log
+
+  - name: Check all validation status
+    shell: |
+      egrep '^(===|Failed|Failure|Success)' /home/stack/logs/osp13_pre-upgrade-validations-*.log
+    register: validation_status
+
+  - name: Print all validation status
+    debug:
+      var: validation_status.stdout_lines
+
+  - name: Check all failed validation status
+    shell: |
+      egrep '^(===|Failed|Failure)' /home/stack/logs/osp13_pre-upgrade-validations-*.log
+    register: validation_status
+
+  - name: Print all failed validation status
+    debug:
+      var: validation_status.stdout_lines
+
+  - name: Please review the failed validation
+    pause: prompt='Did you check all failed validations??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Check UC memory
+    shell: |
+      UC_MEM=$(cat /proc/meminfo | grep MemTotal | awk '{print $2}' | xargs -I MEM python -c 'print(MEM/1024/1024)')
+      if [ ${UC_MEM} -lt 24 ]; then echo "ERROR: UC MEM is less than 24GiB... exit"; exit 1; else echo "UC memory is ${UC_MEM}, we can continue..." ; fi
+    register: uc_memory
+
+  - name: Print UC memory
+    debug:
+      var: uc_memory.stdout_lines
+
+  - name: Copy playbook-nics.yaml file
+    copy:
+      src: ansible-templates/home/stack/playbook-nics.yaml
+      dest: /home/stack/playbook-nics.yaml
+      owner: stack
+      group: stack
+      mode: 0644
+
+  - name: Execute play playbook-nics.yaml
+    shell: |
+      ansible-playbook -c local -i localhost, playbook-nics.yaml 2>&1 | tee -a /home/stack/logs/osp13_uc-playbook-nics.yaml-$(date +%Y-%m-%d-%H%M).log
+    register: playbook_nics
+
+  - name: Print playbook-nics.yaml output
+    debug:
+      var: playbook_nics.stdout_lines
+
+  - name: Please review the playbook-nics.yaml output
+    pause: prompt='Did you check playbook-nics.yaml output??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Reboot UC
+    reboot:
+      reboot_timeout: 1800
+    become: True
+
+  - name: Set PermitRootLogin to yes on UC
+    lineinfile:
+      path: /etc/ssh/sshd_config
+      regexp: '^PermitRootLogin '
+      line: PermitRootLogin yes
+      backup: True
+    become: True
+
+  - name: Restart sshd
+    systemd:
+      name: sshd
+      state: restarted
+    become: True
+
+  - name: Check if all OC nodes are using ipmi driver
+    shell: |
+      source /home/stack/stackrc
+      openstack baremetal node list --driver ipmi -c Name -f value | sort > /tmp/openstack_baremetal_node_ipmi.txt
+      openstack baremetal node list -c Name -f value | sort > /tmp/openstack_baremetal_node_all.txt
+      diff /tmp/openstack_baremetal_node_ipmi.txt /tmp/openstack_baremetal_node_all.txt
