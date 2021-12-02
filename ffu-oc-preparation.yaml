@@ -1,0 +1,103 @@
+- name:  Add hypervisor host in inventory
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Add all hypervisor group-host
+    add_host:
+      name: "{{ item.hypervisor_name }}"
+      ansible_ssh_user: "{{ item.hypervisor_user }}"
+      ansible_ssh_private_key_file: "{{ item.hypervisor_ssh_key }}"
+      groups:
+        - hypervisor_host
+    with_items: "{{ undercloud_nodes }}"
+    when: item.hypervisor_name != "localhost"
+
+- name:  Add Undercloud VM/Node
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Add undercloud group-host
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_pass: "{{ secure_password }}"
+      ansible_ssh_user: stack
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand="ssh -W %h:%p -q {{ item.hypervisor_user }}@{{ item.hypervisor_name }}"'
+      groups:
+        - undercloud
+    when: item.hypervisor_name != "localhost"
+    with_items:
+      - "{{ undercloud_nodes }}"
+
+  - name: Add undercloud group-host for localhost hypervisor
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_pass: "{{ secure_password }}"
+      ansible_ssh_user: stack
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null '
+      groups:
+        - undercloud
+    when: item.hypervisor_name == "localhost"
+    with_items:
+      - "{{ undercloud_nodes }}"
+
+- name: Preparing for overcloud upgrade
+  hosts: undercloud
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Validating the pre-upgrade requirements
+    shell: |
+      source ~/stackrc
+      openstack tripleo validator run --group pre-upgrade --python-interpreter /usr/libexec/platform-python 2>&1 | tee -a /home/stack/logs/osp16_openstack_tripleo_validator_run_pre-upgrade_$(date +%Y-%m-%d-%H%M).log
+
+  - name: Check if pre-upgrade validator has at least one FAILED validator
+    shell: |
+      VALIDATOR_LOG=$(ls /home/stack/logs/osp16_openstack_tripleo_validator_run_pre-upgrade_* | tail -n1)
+      egrep 'FAILED|UUID|^\+' ${VALIDATOR_LOG}
+    register: failed_validator
+
+  - name: Print failed validator
+    debug:
+      var: failed_validator.stdout_lines
+
+  - name: Pause to check failed validator
+    pause: prompt='Are there any validators in FAILED??? (openstack tripleo validator show run --full <UUID>) Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Disable fencing
+    shell: |
+      ansible -m shell Controller[0] -i /home/stack/inventory.yaml -b -a 'pcs property set stonith-enabled=false'
+
+  - name: Update inventory file
+    shell: |
+      source /home/stack/stackrc
+      tripleo-ansible-inventory --static-yaml-inventory ~/inventory.yaml --stack overcloud
+
+  - name: Ensure BackupDB directory exist
+    file:
+      path: /home/stack/BackupDB
+      state: directory
+      owner: stack
+      group: stack
+      mode: 0755
+
+  - name: Backup UC DB
+    shell: |
+      source /home/stack/stackrc
+      MYSQLPASSWORD=$(sudo hiera -c /etc/puppet/hiera.yaml 'mysql::server::root_password' )
+      set -o pipefail
+      sudo podman exec mysql bash -c "mysql -uroot \
+        -p${MYSQLPASSWORD} -s -N \
+        -e \"SELECT CONCAT('\\\"SHOW GRANTS FOR ''',user,'''@''',host,''';\\\"') \
+        FROM mysql.user where (length(user) > 0 and user NOT LIKE 'root')\"  | xargs -n1 mysql \
+        -uroot -p${MYSQLPASSWORD} -s -N -e | sed 's/$/;/' " > /home/stack/BackupDB/osp16_uc_openstack-backup-mysql-grants-$(date +%Y-%m-%d-%H%M).sql
+
+      sudo podman exec mysql bash -c "mysql -uroot \
+        -p${MYSQLPASSWORD} -s -N \
+        -e \"select distinct table_schema from information_schema.tables \
+        where engine='innodb' and table_schema != 'mysql';\" | xargs mysqldump -uroot \
+        -p${MYSQLPASSWORD}  --single-transaction --databases" > /home/stack/BackupDB/osp16_uc_openstack-backup-mysql-$(date +%Y-%m-%d-%H%M).sql

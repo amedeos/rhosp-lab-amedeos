@@ -22,3 +22,7 @@
   tags:
     - ffu-uc-rhosp-upgrade
 
+- import_playbook: ffu-oc-preparation.yaml
+  tags:
+    - ffu-oc-preparation
+
