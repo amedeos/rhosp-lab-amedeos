@@ -3,3 +3,7 @@ Opened a new bz https://bugzilla.redhat.com/show_bug.cgi?id=2028413
 
 2) tripleo_ironic_inspector_dnsmasq_healthcheck.service fails on UC after FFU
 Opened a new bz https://bugzilla.redhat.com/show_bug.cgi?id=2028479
+
+3) on chap 7.6 Undercloud node database backup there is a mention of
+--db-only for openstack undercloud backup command, but never found it, also
+inside /lib/python3.6/site-packages/tripleoclient/v1/undercloud_backup.py
