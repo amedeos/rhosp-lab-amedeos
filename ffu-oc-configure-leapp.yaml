@@ -1,0 +1,77 @@
+- name:  Add hypervisor host in inventory
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Add all hypervisor group-host
+    add_host:
+      name: "{{ item.hypervisor_name }}"
+      ansible_ssh_user: "{{ item.hypervisor_user }}"
+      ansible_ssh_private_key_file: "{{ item.hypervisor_ssh_key }}"
+      groups:
+        - hypervisor_host
+    with_items: "{{ undercloud_nodes }}"
+    when: item.hypervisor_name != "localhost"
+
+- name:  Add Undercloud VM/Node
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Add undercloud group-host
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_pass: "{{ secure_password }}"
+      ansible_ssh_user: stack
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand="ssh -W %h:%p -q {{ item.hypervisor_user }}@{{ item.hypervisor_name }}"'
+      groups:
+        - undercloud
+    when: item.hypervisor_name != "localhost"
+    with_items:
+      - "{{ undercloud_nodes }}"
+
+  - name: Add undercloud group-host for localhost hypervisor
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_pass: "{{ secure_password }}"
+      ansible_ssh_user: stack
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null '
+      groups:
+        - undercloud
+    when: item.hypervisor_name == "localhost"
+    with_items:
+      - "{{ undercloud_nodes }}"
+
+- name: Configuring the overcloud for a leapp upgrade
+  hosts: undercloud
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Create upgrades-environment.yaml
+    template:
+      src: ansible-templates/home/stack/templates/environments/upgrades-environment.yaml
+      dest: /home/stack/templates/environments/upgrades-environment.yaml
+      owner: stack
+      group: stack
+      mode: 0644
+
+  - name: Using predictable NIC names for overcloud nodes
+    shell: |
+      ansible-playbook -i /home/stack/inventory.yaml /home/stack/playbook-nics.yaml 2>&1 | tee -a /home/stack/logs/osp16_oc_playbook-nics-$(date +%Y-%m-%d-%H%M).log
+
+  - name: Check failed entry in playbook-nics log file
+    shell: |
+      LOG_FILE=$(ls /home/stack/logs/osp16_oc_playbook-nics-* | tail -n1)
+      egrep 'failed=' ${LOG_FILE}
+    register: nics_log
+
+  - name: Print playbook-nics.yaml recap
+    debug:
+      var: nics_log.stdout_lines
+
+  - name: Pause to check failed validator
+    pause: prompt='Are there any tasks / hosts in FAILED??? Press return to continue. Press Ctrl+c and then "a" to abort'
+

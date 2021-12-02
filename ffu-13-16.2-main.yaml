@@ -26,3 +26,7 @@
   tags:
     - ffu-oc-preparation
 
+- import_playbook: ffu-oc-configure-leapp.yaml
+  tags:
+    - ffu-oc-configure-leapp
+
