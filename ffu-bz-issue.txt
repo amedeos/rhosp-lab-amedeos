@@ -1,0 +1,5 @@
+1) tripleo_memcached_healthcheck.service fails on UC after FFU
+Opened a new bz https://bugzilla.redhat.com/show_bug.cgi?id=2028413
+
+2) tripleo_ironic_inspector_dnsmasq_healthcheck.service fails on UC after FFU
+Opened a new bz https://bugzilla.redhat.com/show_bug.cgi?id=2028479
