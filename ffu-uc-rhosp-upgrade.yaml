@@ -193,3 +193,25 @@
   - name: Pause to run playbook
     pause: prompt='Did you run the /home/stack/osp16_openstack_undercloud_upgrade.sh script??? Press return to continue. Press Ctrl+c and then "a" to abort'
 
+  - name: List UC tripleo services
+    shell: |
+      sudo systemctl list-units "tripleo_*"
+    register: tripleo_services
+
+  - name: Print UC tripleo services
+    debug:
+      var: tripleo_services.stdout_lines
+
+  - name: List UC failed tripleo services
+    shell: |
+      sudo systemctl list-units "tripleo_*" | egrep "failed"
+    ignore_errors: True
+    register: tripleo_services
+
+  - name: Print UC failed tripleo services
+    debug:
+      var: tripleo_services.stdout_lines
+ 
+  - name: Pause to check failed tripleo services
+    pause: prompt='Are there any tripleo services in failed??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
