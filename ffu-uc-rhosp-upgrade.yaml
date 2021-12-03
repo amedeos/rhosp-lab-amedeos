@@ -134,7 +134,7 @@
     blockinfile:
       path: /home/stack/containers-prepare-parameter.yaml
       backup: True
-      marker: "# ANSIBLE MANAGED BLOCK - CREDENTIAL"
+      marker: "# {mark} ANSIBLE MANAGED BLOCK - CREDENTIAL"
       block: |2
           ContainerImageRegistryCredentials:
             registry.redhat.io:
@@ -144,7 +144,7 @@
     blockinfile:
       path: /home/stack/containers-prepare-parameter.yaml
       backup: True
-      marker: "# ANSIBLE MANAGED BLOCK - STEIN - CEPH3"
+      marker: "# {mark} ANSIBLE MANAGED BLOCK - STEIN - CEPH3"
       insertafter: "tag:"
       block: |2
               name_prefix_stein: openstack-
