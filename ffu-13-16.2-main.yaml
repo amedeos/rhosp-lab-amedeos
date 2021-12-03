@@ -30,3 +30,7 @@
   tags:
     - ffu-oc-configure-leapp
 
+- import_playbook: ffu-oc-template-refactor.yaml
+  tags:
+    - ffu-oc-template-refactor
+
