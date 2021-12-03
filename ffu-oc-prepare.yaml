@@ -1,0 +1,97 @@
+- name:  Add hypervisor host in inventory
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Add all hypervisor group-host
+    add_host:
+      name: "{{ item.hypervisor_name }}"
+      ansible_ssh_user: "{{ item.hypervisor_user }}"
+      ansible_ssh_private_key_file: "{{ item.hypervisor_ssh_key }}"
+      groups:
+        - hypervisor_host
+    with_items: "{{ undercloud_nodes }}"
+    when: item.hypervisor_name != "localhost"
+
+- name:  Add Undercloud VM/Node
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Add undercloud group-host
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_pass: "{{ secure_password }}"
+      ansible_ssh_user: stack
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand="ssh -W %h:%p -q {{ item.hypervisor_user }}@{{ item.hypervisor_name }}"'
+      groups:
+        - undercloud
+    when: item.hypervisor_name != "localhost"
+    with_items:
+      - "{{ undercloud_nodes }}"
+
+  - name: Add undercloud group-host for localhost hypervisor
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_pass: "{{ secure_password }}"
+      ansible_ssh_user: stack
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null '
+      groups:
+        - undercloud
+    when: item.hypervisor_name == "localhost"
+    with_items:
+      - "{{ undercloud_nodes }}"
+
+- name: Running the overcloud upgrade preparation
+  hosts: undercloud
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Check nova-compute service on UC
+    shell: |
+      source /home/stack/stackrc
+      nova service-list | grep nova-compute | egrep 'enabled \| up'
+
+  - name: Create osp16_openstack_overcloud_upgrade_prepare.sh script
+    shell: |
+      cp -f /home/stack/overcloud-deploy.sh /home/stack/osp16_openstack_overcloud_upgrade_prepare.sh
+      sed -i  -E 's/openstack overcloud deploy/openstack overcloud upgrade prepare/g' /home/stack/osp16_openstack_overcloud_upgrade_prepare.sh
+      sed -i  -E 's/openstack_overcloud_deploy/openstack_overcloud_upgrade_prepare/g' /home/stack/osp16_openstack_overcloud_upgrade_prepare.sh
+
+  - name: messages for debug
+    debug:
+      msg:
+        - "################# RUN TMUX ##################"
+        - "# tmux"
+        - "# su - stack"
+        - "$ cd /home/stack"
+        - "$ /home/stack/osp16_openstack_overcloud_upgrade_prepare.sh"
+
+  - name: Pause to run playbook
+    pause: prompt='Did you run the /home/stack/osp16_openstack_overcloud_upgrade_prepare.sh script??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Create the script for downloading the container images
+    copy:
+      dest: /home/stack/osp16_openstack_overcloud_external-upgrade_container_image_prepare.sh
+      owner: stack
+      group: stack
+      mode: 0755
+      content: |
+        source /home/stack/stackrc
+        openstack overcloud external-upgrade run --stack overcloud --tags container_image_prepare 2>&1 | tee -a /home/stack/logs/osp16_openstack_overcloud_external-upgrade_container_image_prepare-$(date +%Y-%m-%d-%H%M).log
+
+  - name: messages for debug
+    debug:
+      msg:
+        - "################# RUN TMUX ##################"
+        - "# tmux"
+        - "# su - stack"
+        - "$ cd /home/stack"
+        - "$ /home/stack/osp16_openstack_overcloud_external-upgrade_container_image_prepare.sh"
+
+  - name: Pause to run playbook
+    pause: prompt='Did you run the /home/stack/osp16_openstack_overcloud_external-upgrade_container_image_prepare.sh script??? Press return to continue. Press Ctrl+c and then "a" to abort'
+

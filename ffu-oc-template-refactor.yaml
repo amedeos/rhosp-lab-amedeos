@@ -112,6 +112,15 @@
   - name: Pause to check update-nic-templates.sh output
     pause: prompt='Was the update-nic-templates.sh execution successful??? Press return to continue. Press Ctrl+c and then "a" to abort'
 
+  - name: Copy 65-kernelargs.yaml template
+    template:
+      src: ansible-templates/home/stack/templates/environments/osp16_65-kernelargs.yaml
+      dest: /home/stack/templates/environments/65-kernelargs.yaml
+      owner: stack
+      group: stack
+      mode: 0644
+      backup: True
+
   - name: Copy new overcloud-deploy.sh
     template:
       src: ansible-templates/home/stack/osp16_overcloud-deploy.sh

@@ -34,3 +34,11 @@
   tags:
     - ffu-oc-template-refactor
 
+- import_playbook: ffu-oc-check-tsx.yaml
+  tags:
+    - ffu-oc-check-tsx
+
+- import_playbook: ffu-oc-prepare.yaml
+  tags:
+    - ffu-oc-prepare
+

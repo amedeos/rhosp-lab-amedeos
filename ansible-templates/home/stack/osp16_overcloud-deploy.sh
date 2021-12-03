@@ -30,4 +30,5 @@ time openstack overcloud deploy \
         -e /home/stack/templates/environments/45-inject-trust-anchor.yaml \
         -e /home/stack/templates/environments/35-ceph-config.yaml \
         -e /home/stack/templates/environments/55-rsvd_host_memory.yaml \
+        -e /home/stack/templates/environments/65-kernelargs.yaml \
         -e /home/stack/templates/fencing.yaml 2>&1 | tee -a /home/stack/logs/osp16_openstack_overcloud_deploy-$(date +%Y-%m-%d-%H%M).log
