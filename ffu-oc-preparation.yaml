@@ -85,6 +85,7 @@
       group: stack
       mode: 0755
 
+  # till to z2 and bz#1977392 we need to backup db by running podman
   - name: Backup UC DB
     shell: |
       source /home/stack/stackrc
