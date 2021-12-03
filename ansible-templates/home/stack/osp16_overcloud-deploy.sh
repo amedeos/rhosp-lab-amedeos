@@ -21,7 +21,7 @@ time openstack overcloud deploy \
         -e /usr/share/openstack-tripleo-heat-templates/environments/network-isolation.yaml \
         -e /usr/share/openstack-tripleo-heat-templates/environments/ceph-ansible/ceph-ansible.yaml \
         -e /usr/share/openstack-tripleo-heat-templates/environments/ssl/tls-endpoints-public-ip.yaml \
-        -e /usr/share/openstack-tripleo-heat-templates/environments/services-docker/octavia.yaml \
+        -e /usr/share/openstack-tripleo-heat-templates/environments/services/octavia.yaml \
         -e /usr/share/openstack-tripleo-heat-templates/environments/ceph-ansible/ceph-rgw.yaml \
         -e /home/stack/templates/environments/25-hostname-map.yaml \
         -e /home/stack/templates/environments/30-fixed-ip-vips.yaml \
