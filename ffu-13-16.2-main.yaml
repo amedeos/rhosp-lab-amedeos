@@ -42,3 +42,7 @@
   tags:
     - ffu-oc-prepare
 
+- import_playbook: ffu-oc-bootstrap-controller.yaml
+  tags:
+    - ffu-oc-bootstrap-controller
+

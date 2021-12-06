@@ -12,3 +12,7 @@ This feature will be present in 16.2.2 => https://bugzilla.redhat.com/show_bug.c
 4) check TSX mode on computes; the advice is to switch to off,
 but if was on on rhosp13/rhel7 live migration never occurs
 See KCS: https://access.redhat.com/solutions/6036141
+
+5) bootstrap controller upgrade with no_tags has been ran 3 times
+first time: got an exception on rabbitmq not running
+second time: got an exception on nova-conductor not ready
