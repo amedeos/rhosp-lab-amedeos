@@ -66,3 +66,7 @@
   tags:
     - ffu-oc-second-ceph
 
+- import_playbook: ffu-oc-third-ceph.yaml
+  tags:
+    - ffu-oc-third-ceph
+
