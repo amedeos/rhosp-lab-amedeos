@@ -50,3 +50,7 @@
   tags:
     - ffu-oc-second-controller
 
+- import_playbook: ffu-oc-third-controller.yaml
+  tags:
+    - ffu-oc-third-controller
+

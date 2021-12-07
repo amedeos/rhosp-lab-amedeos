@@ -13,7 +13,24 @@ This feature will be present in 16.2.2 => https://bugzilla.redhat.com/show_bug.c
 but if was on on rhosp13/rhel7 live migration never occurs
 See KCS: https://access.redhat.com/solutions/6036141
 
-5) bootstrap controller upgrade with no_tags has been ran 3 times
+5) Upgrade on controller fails multiple time due to rabbitmq and redis errors
+bootstrap controller upgrade with no_tags has been ran 3 times
 first time: got an exception on rabbitmq not running
 second time: got an exception on nova-conductor not ready
 ### paunch --debug apply --file /var/lib/tripleo-config/container-startup-config/step_2 --config-id tripleo_step2 --managed-by tripleo-Controller
+- second controller: I've been ran 5 times with same errors on rabbitmq at the
+  end I've generated new selinux modules for granting writes on log dir to
+  containers:
+[root@controller-2 ~]# egrep '^allow' *.te
+customContainerLog2.te:allow container_t container_log_t:dir { read setattr };
+customContainerLog2.te:allow container_t container_log_t:file open;
+customContainerLog3.te:allow container_t container_log_t:dir write;
+customContainerLog3.te:allow container_t container_log_t:file ioctl;
+customContainerLog.te:allow container_t container_log_t:file { append write };
+After loading those modules I've removed all logs under /var/log/containers/rabbitmq/
+rm rabbit\@controller-2.log*
+rm rabbit\@controller-2_upgrade.log*
+rm startup_log.*
+- third controller: first run failed at step1
+second run end with succes but rabbitmq and redis were stopped/failed => after
+deploy I only ran "pcs resource cleanup"

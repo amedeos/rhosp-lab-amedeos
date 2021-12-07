@@ -1,0 +1,18 @@
+module customContainerLog 1.0;
+
+require {
+        type container_log_t;
+        type container_t;
+        class file { append write };
+        class dir { read setattr };
+        class file open;
+        class file ioctl;
+        class dir write;
+}
+
+#============= container_t ==============
+allow container_t container_log_t:file { append write };
+allow container_t container_log_t:dir { read setattr };
+allow container_t container_log_t:file open;
+allow container_t container_log_t:dir write;
+allow container_t container_log_t:file ioctl;
