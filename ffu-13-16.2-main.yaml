@@ -46,3 +46,7 @@
   tags:
     - ffu-oc-bootstrap-controller
 
+- import_playbook: ffu-oc-second-controller.yaml
+  tags:
+    - ffu-oc-second-controller
+

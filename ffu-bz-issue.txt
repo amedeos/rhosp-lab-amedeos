@@ -16,3 +16,4 @@ See KCS: https://access.redhat.com/solutions/6036141
 5) bootstrap controller upgrade with no_tags has been ran 3 times
 first time: got an exception on rabbitmq not running
 second time: got an exception on nova-conductor not ready
+### paunch --debug apply --file /var/lib/tripleo-config/container-startup-config/step_2 --config-id tripleo_step2 --managed-by tripleo-Controller
