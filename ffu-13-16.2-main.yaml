@@ -70,3 +70,7 @@
   tags:
     - ffu-oc-third-ceph
 
+- import_playbook: ffu-oc-first-compute.yaml
+  tags:
+    - ffu-oc-first-compute
+

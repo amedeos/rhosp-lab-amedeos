@@ -1,0 +1,127 @@
+- name:  Add hypervisor host in inventory
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Add all hypervisor group-host
+    add_host:
+      name: "{{ item.hypervisor_name }}"
+      ansible_ssh_user: "{{ item.hypervisor_user }}"
+      ansible_ssh_private_key_file: "{{ item.hypervisor_ssh_key }}"
+      groups:
+        - hypervisor_host
+    with_items: "{{ undercloud_nodes }}"
+    when: item.hypervisor_name != "localhost"
+
+- name:  Add Undercloud VM/Node
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Add undercloud group-host
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_pass: "{{ secure_password }}"
+      ansible_ssh_user: stack
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand="ssh -W %h:%p -q {{ item.hypervisor_user }}@{{ item.hypervisor_name }}"'
+      groups:
+        - undercloud
+    when: item.hypervisor_name != "localhost"
+    with_items:
+      - "{{ undercloud_nodes }}"
+
+  - name: Add undercloud group-host for localhost hypervisor
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_pass: "{{ secure_password }}"
+      ansible_ssh_user: stack
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null '
+      groups:
+        - undercloud
+    when: item.hypervisor_name == "localhost"
+    with_items:
+      - "{{ undercloud_nodes }}"
+
+- name: Upgrading first compute
+  hosts: undercloud
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Create the script for system_upgrade
+    copy:
+      dest: /home/stack/osp16_openstack_overcloud_external-upgrade_system_upgrade_first_compute.sh
+      owner: stack
+      group: stack
+      mode: 0755
+      content: |
+        source /home/stack/stackrc
+        openstack overcloud upgrade run --stack overcloud --tags system_upgrade --limit {{ first_compute }} 2>&1 | tee -a /home/stack/logs/osp16_openstack_overcloud_external-upgrade_system_upgrade_first_compute-$(date +%Y-%m-%d-%H%M).log
+
+  - name: messages for debug
+    debug:
+      msg:
+        - "################# RUN TMUX ##################"
+        - "# tmux"
+        - "# su - stack"
+        - "$ cd /home/stack"
+        - "$ /home/stack/osp16_openstack_overcloud_external-upgrade_system_upgrade_first_compute.sh"
+
+  - name: Pause to run playbook
+    pause: prompt='Did you run the /home/stack/osp16_openstack_overcloud_external-upgrade_system_upgrade_first_compute.sh script??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Check release
+    shell: |
+      ansible -m shell {{ first_compute }} -i /home/stack/inventory.yaml -b -a 'subscription-manager release' -o | egrep 8.4
+
+  - name: Disable repos
+    shell: |
+      ansible -m shell {{ first_compute }} -i /home/stack/inventory.yaml -b -a 'subscription-manager repos --disable=*'
+    register: repos
+
+  - name: Enable repos
+    shell: |
+      ansible -m shell {{ first_compute }} -i /home/stack/inventory.yaml -b -a ' subscription-manager repos --enable=rhel-8-for-x86_64-baseos-eus-rpms --enable=rhel-8-for-x86_64-appstream-eus-rpms --enable=rhel-8-for-x86_64-highavailability-eus-rpms --enable=ansible-2.9-for-rhel-8-x86_64-rpms --enable=advanced-virt-for-rhel-8-x86_64-rpms --enable=openstack-16.2-for-rhel-8-x86_64-rpms --enable=fast-datapath-for-rhel-8-x86_64-rpms --enable=rhceph-4-tools-for-rhel-8-x86_64-rpms '
+    register: repos
+
+  - name: Print repos
+    debug:
+      var: repos.stdout_lines
+
+  - name: Pause to run playbook
+    pause: prompt='Are all repos enabled??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: dnf makecache
+    shell: |
+      ansible -m shell {{ first_compute }} -i /home/stack/inventory.yaml -b -a 'dnf clean all'
+      ansible -m shell {{ first_compute }} -i /home/stack/inventory.yaml -b -a 'dnf makecache'
+    register: repos
+
+  - name: Print repos
+    debug:
+      var: repos.stdout_lines
+
+  - name: Create the script for no_tags
+    copy:
+      dest: /home/stack/osp16_openstack_overcloud_upgrade_no_tags_first_compute.sh
+      owner: stack
+      group: stack
+      mode: 0755
+      content: |
+        source /home/stack/stackrc
+        openstack overcloud upgrade run --stack overcloud --limit {{ first_compute }} 2>&1 | tee -a /home/stack/logs/osp16_openstack_overcloud_upgrade_no_tags_first_compute-$(date +%Y-%m-%d-%H%M).log
+
+  - name: messages for debug
+    debug:
+      msg:
+        - "################# RUN TMUX ##################"
+        - "# tmux"
+        - "# su - stack"
+        - "$ cd /home/stack"
+        - "$ /home/stack/osp16_openstack_overcloud_upgrade_no_tags_first_compute.sh"
+
+  - name: Pause to run playbook
+    pause: prompt='Did you run the /home/stack/osp16_openstack_overcloud_upgrade_no_tags_first_compute.sh script??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
