@@ -58,3 +58,7 @@
   tags:
     - ffu-oc-check-service
 
+- import_playbook: ffu-oc-first-ceph.yaml
+  tags:
+    - ffu-oc-first-ceph
+

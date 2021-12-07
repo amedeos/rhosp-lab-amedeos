@@ -220,3 +220,6 @@ tsx_state: 'off'
 bootstrap_ctrl: controller-1
 second_ctrl: controller-2
 third_ctrl: controller-3
+first_ceph: ceph-1
+second_ceph: ceph-2
+third_ceph: ceph-3
