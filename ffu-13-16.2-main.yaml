@@ -62,3 +62,7 @@
   tags:
     - ffu-oc-first-ceph
 
+- import_playbook: ffu-oc-second-ceph.yaml
+  tags:
+    - ffu-oc-second-ceph
+
