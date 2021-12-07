@@ -54,3 +54,7 @@
   tags:
     - ffu-oc-third-controller
 
+- import_playbook: ffu-oc-check-service.yaml
+  tags:
+    - ffu-oc-check-service
+

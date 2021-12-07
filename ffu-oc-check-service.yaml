@@ -1,0 +1,115 @@
+- name:  Add hypervisor host in inventory
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Add all hypervisor group-host
+    add_host:
+      name: "{{ item.hypervisor_name }}"
+      ansible_ssh_user: "{{ item.hypervisor_user }}"
+      ansible_ssh_private_key_file: "{{ item.hypervisor_ssh_key }}"
+      groups:
+        - hypervisor_host
+    with_items: "{{ undercloud_nodes }}"
+    when: item.hypervisor_name != "localhost"
+
+- name:  Add Undercloud VM/Node
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Add undercloud group-host
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_pass: "{{ secure_password }}"
+      ansible_ssh_user: stack
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand="ssh -W %h:%p -q {{ item.hypervisor_user }}@{{ item.hypervisor_name }}"'
+      groups:
+        - undercloud
+    when: item.hypervisor_name != "localhost"
+    with_items:
+      - "{{ undercloud_nodes }}"
+
+  - name: Add undercloud group-host for localhost hypervisor
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_pass: "{{ secure_password }}"
+      ansible_ssh_user: stack
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null '
+      groups:
+        - undercloud
+    when: item.hypervisor_name == "localhost"
+    with_items:
+      - "{{ undercloud_nodes }}"
+
+- name: Check OC service
+  hosts: undercloud
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Get cluster status
+    shell: |
+      ansible -m shell {{ third_ctrl }} -i /home/stack/inventory.yaml -b -a 'pcs status'
+    register: pcs_status
+
+  - name: Print Pacemaker status
+    debug:
+      var: pcs_status.stdout_lines
+
+  - name: Pause to run playbook
+    pause: prompt='Is pacemaker cluster in good state??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Get Ceph status
+    shell: |
+      ansible -m shell {{ bootstrap_ctrl }} -i /home/stack/inventory.yaml -b -a 'podman exec ceph-mon-controller-1 ceph -s'
+    register: ceph_status
+
+  - name: Print Ceph status
+    debug:
+      var: ceph_status.stdout_lines
+
+  - name: Pause to run playbook
+    pause: prompt='Is Ceph in good state??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Get nova status
+    shell: |
+      source /home/stack/overcloudrc
+      nova service-list 2> /dev/null | egrep -v nova-consoleauth
+    register: nova_status
+
+  - name: Print nova status
+    debug:
+      var: nova_status.stdout_lines
+
+  - name: Pause to run playbook
+    pause: prompt='Is nova in good state??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Get neutron status
+    shell: |
+      source /home/stack/overcloudrc
+      neutron agent-list 2> /dev/null
+    register: neutron_status
+
+  - name: Print neutron status
+    debug:
+      var: neutron_status.stdout_lines
+
+  - name: Pause to run playbook
+    pause: prompt='Is neutron in good state??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Get cinder status
+    shell: |
+      source /home/stack/overcloudrc
+      cinder service-list 2> /dev/null
+    register: cinder_status
+
+  - name: Print cinder status
+    debug:
+      var: cinder_status.stdout_lines
+
+  - name: Pause to run playbook
+    pause: prompt='Is cinder in good state??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
