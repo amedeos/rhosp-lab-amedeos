@@ -86,3 +86,11 @@
   tags:
     - ffu-oc-converge
 
+- import_playbook: ffu-oc-upgrade-ceph4.yaml
+  tags:
+    - ffu-oc-upgrade-ceph4
+
+- import_playbook: ffu-oc-check-service.yaml
+  tags:
+    - ffu-oc-check-service-after-ceph4
+
