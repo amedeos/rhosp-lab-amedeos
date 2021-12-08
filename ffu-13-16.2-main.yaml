@@ -78,3 +78,11 @@
   tags:
     - ffu-oc-second-compute
 
+- import_playbook: ffu-oc-check-service.yaml
+  tags:
+    - ffu-oc-check-service-before-converge
+
+- import_playbook: ffu-oc-converge.yaml
+  tags:
+    - ffu-oc-converge
+
