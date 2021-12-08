@@ -102,3 +102,6 @@
   tags:
     - ffu-oc-bluestore-second-ceph
 
+- import_playbook: ffu-oc-bluestore-third-ceph.yaml
+  tags:
+    - ffu-oc-bluestore-third-ceph

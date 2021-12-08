@@ -52,15 +52,8 @@
   tasks:
   - name: Check if Ceph cluster runs FileStore
     shell: |
-      ansible -m shell controller-1 -i /home/stack/inventory.yaml -b -a 'podman exec -it ceph-mon-controller-1 sh -c "ceph -f json osd metadata" ' | egrep '^\[' | jq -c 'sort_by(.hostname) | .[]| ["host", .hostname, "osd_id", .id, "objectstore", .osd_objectstore]'
+      ansible -m shell controller-1 -i /home/stack/inventory.yaml -b -a 'podman exec -it ceph-mon-controller-1 sh -c "ceph -f json osd metadata" ' | egrep '^\[' | jq -c 'sort_by(.hostname) | .[]| ["host", .hostname, "osd_id", .id, "objectstore", .osd_objectstore]' | grep {{ second_ceph }} | grep filestore
     register: osd_status
-
-  - name: Print OSD status
-    debug:
-      var: osd_status.stdout_lines
-
-  - name: Pause to run playbook
-    pause: prompt='Is {{ second_ceph }} running FileStore??? Press return to continue. Press Ctrl+c and then "a" to abort'
 
   - name: Ensure HEALTH_OK
     shell: |
