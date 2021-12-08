@@ -110,3 +110,7 @@
   tags:
     - ffu-uc-remove-packages-and-directories
 
+- import_playbook: ffu-oc-validating-post-upgrade.yaml
+  tags:
+    - ffu-oc-validating-post-upgrade
+
