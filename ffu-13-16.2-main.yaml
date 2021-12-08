@@ -105,3 +105,8 @@
 - import_playbook: ffu-oc-bluestore-third-ceph.yaml
   tags:
     - ffu-oc-bluestore-third-ceph
+
+- import_playbook: ffu-uc-remove-packages-and-directories.yaml
+  tags:
+    - ffu-uc-remove-packages-and-directories
+
