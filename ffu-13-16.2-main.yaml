@@ -94,3 +94,7 @@
   tags:
     - ffu-oc-check-service-after-ceph4
 
+- import_playbook: ffu-oc-bluestore-first-ceph.yaml
+  tags:
+    - ffu-oc-bluestore-first-ceph
+
