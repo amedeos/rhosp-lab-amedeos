@@ -98,3 +98,7 @@
   tags:
     - ffu-oc-bluestore-first-ceph
 
+- import_playbook: ffu-oc-bluestore-second-ceph.yaml
+  tags:
+    - ffu-oc-bluestore-second-ceph
+

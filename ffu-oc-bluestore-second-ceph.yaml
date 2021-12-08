@@ -1,0 +1,107 @@
+- name:  Add hypervisor host in inventory
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Add all hypervisor group-host
+    add_host:
+      name: "{{ item.hypervisor_name }}"
+      ansible_ssh_user: "{{ item.hypervisor_user }}"
+      ansible_ssh_private_key_file: "{{ item.hypervisor_ssh_key }}"
+      groups:
+        - hypervisor_host
+    with_items: "{{ undercloud_nodes }}"
+    when: item.hypervisor_name != "localhost"
+
+- name:  Add Undercloud VM/Node
+  hosts: localhost
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Add undercloud group-host
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_pass: "{{ secure_password }}"
+      ansible_ssh_user: stack
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand="ssh -W %h:%p -q {{ item.hypervisor_user }}@{{ item.hypervisor_name }}"'
+      groups:
+        - undercloud
+    when: item.hypervisor_name != "localhost"
+    with_items:
+      - "{{ undercloud_nodes }}"
+
+  - name: Add undercloud group-host for localhost hypervisor
+    add_host:
+      name: "{{ undercloud_n }}.{{ domain }}"
+      ansible_ssh_pass: "{{ secure_password }}"
+      ansible_ssh_user: stack
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null '
+      groups:
+        - undercloud
+    when: item.hypervisor_name == "localhost"
+    with_items:
+      - "{{ undercloud_nodes }}"
+
+- name: OSD migration from FileStore to BlueStore
+  hosts: undercloud
+  vars_files:
+    - variables.yaml
+    - overcloud-ansible-nodes.json
+  tasks:
+  - name: Check if Ceph cluster runs FileStore
+    shell: |
+      ansible -m shell controller-1 -i /home/stack/inventory.yaml -b -a 'podman exec -it ceph-mon-controller-1 sh -c "ceph -f json osd metadata" ' | egrep '^\[' | jq -c 'sort_by(.hostname) | .[]| ["host", .hostname, "osd_id", .id, "objectstore", .osd_objectstore]'
+    register: osd_status
+
+  - name: Print OSD status
+    debug:
+      var: osd_status.stdout_lines
+
+  - name: Pause to run playbook
+    pause: prompt='Is {{ second_ceph }} running FileStore??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Ensure HEALTH_OK
+    shell: |
+      ansible -m shell controller-1 -i /home/stack/inventory.yaml -b -a 'podman exec -it ceph-mon-controller-1 ceph -s' | grep HEALTH_OK
+
+  - name: Copy new /home/stack/templates/environments/35-ceph-config.yaml
+    template:
+      src: ansible-templates/home/stack/templates/environments/osp16_35-ceph-config.yaml
+      dest: /home/stack/templates/environments/35-ceph-config.yaml
+      backup: True
+      owner: stack
+      group: stack
+      mode: 0644
+
+  - name: Create the script for second_ceph
+    copy:
+      dest: /home/stack/osp16_openstack_overcloud_external-upgrade_ceph_fstobs_second_ceph.sh
+      owner: stack
+      group: stack
+      mode: 0755
+      content: |
+        source /home/stack/stackrc
+        openstack overcloud external-upgrade run --tags ceph_fstobs -e ceph_ansible_limit={{ second_ceph }} 2>&1 | tee -a /home/stack/logs/osp16_openstack_overcloud_external-upgrade_ceph_fstobs_second_ceph-$(date +%Y-%m-%d-%H%M).log
+
+  - name: messages for debug
+    debug:
+      msg:
+        - "################# RUN TMUX ##################"
+        - "# tmux"
+        - "# su - stack"
+        - "$ cd /home/stack"
+        - "$ /home/stack/osp16_openstack_overcloud_external-upgrade_ceph_fstobs_second_ceph.sh"
+
+  - name: Pause to run playbook
+    pause: prompt='Did you run the /home/stack/osp16_openstack_overcloud_external-upgrade_ceph_fstobs_second_ceph.sh script??? Press return to continue. Press Ctrl+c and then "a" to abort'
+
+  - name: Increase backfills and recovery
+    shell: |
+      ansible conttroller-1 -bm shell -a "podman exec ceph-mon-controller-1 ceph tell 'osd.*' injectargs --osd-max-backfills=2 --osd-recovery-max-active=6"
+
+  - name: Check if node was converted
+    shell: |
+      ansible -m shell controller-1 -i /home/stack/inventory.yaml -b -a 'podman exec -it ceph-mon-controller-1 sh -c "ceph -f json osd metadata" ' | egrep '^\[' | jq -c 'sort_by(.hostname) | .[]| ["host", .hostname, "osd_id", .id, "objectstore", .osd_objectstore]' | grep {{ second_ceph }} | grep bluestore
+
