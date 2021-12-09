@@ -110,6 +110,10 @@
   tags:
     - ffu-uc-remove-packages-and-directories
 
+- import_playbook: ffu-oc-remove-nova-consoleauth.yaml
+  tags:
+    - ffu-oc-remove-nova-consoleauth
+
 - import_playbook: ffu-oc-validating-post-upgrade.yaml
   tags:
     - ffu-oc-validating-post-upgrade

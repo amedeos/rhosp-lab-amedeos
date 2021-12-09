@@ -34,3 +34,7 @@ rm startup_log.*
 - third controller: first run failed at step1
 second run end with succes but rabbitmq and redis were stopped/failed => after
 deploy I only ran "pcs resource cleanup"
+
+6) FFU never remove the nova-consoleauth services on OC, but validator on
+post-upgrade fails for its presence => added a simple script to delete the
+service (ffu-oc-remove-nova-consoleauth.yaml)
