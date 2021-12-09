@@ -118,3 +118,7 @@
   tags:
     - ffu-oc-validating-post-upgrade
 
+- import_playbook: ffu-oc-update-images.yaml
+  tags:
+    - ffu-oc-update-images
+
